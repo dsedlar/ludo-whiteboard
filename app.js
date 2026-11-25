@@ -37,6 +37,16 @@ const OVERLAYS = [
       { k: 'arrow', x1: 8, x2: 34, y: -1.5, t: 'BALL ATTACKS' },
     ],
   },
+  {
+    id: 'volleyball', name: 'Volleyball lines',
+    shapes: [
+      { k: 'ln', x1: 12.17, y1: 10.13, x2: 71.88, y2: 10.13 }, { k: 'ln', x1: 12.17, y1: 39.81, x2: 71.88, y2: 39.81 },
+      { k: 'ln', x1: 12.17, y1: 10.13, x2: 12.17, y2: 39.81 }, { k: 'ln', x1: 71.88, y1: 10.13, x2: 71.88, y2: 39.81 },
+      { k: 'ln', x1: 31.93, y1: 10.13, x2: 31.93, y2: 39.81 }, { k: 'ln', x1: 52.12, y1: 10.13, x2: 52.12, y2: 39.81 },
+      { k: 'ln', x1: 10.81, y1: 10.13, x2: 11.45, y2: 10.13 }, { k: 'ln', x1: 72.65, y1: 10.13, x2: 73.24, y2: 10.13 },
+      { k: 'ln', x1: 10.81, y1: 39.81, x2: 11.45, y2: 39.81 }, { k: 'ln', x1: 72.65, y1: 39.81, x2: 73.24, y2: 39.81 },
+    ],
+  },
 ];
 
 /* ---------- small helpers ---------- */
@@ -197,6 +207,8 @@ function fillOverlays(g, st) {
         ft.append(
           S('rect', { x, y: s.y, width: s.w, height: s.h, fill: '#f3eed4', 'fill-opacity': 0.55 }),
           S('rect', { x, y: s.y, width: s.w, height: s.h, fill: 'url(#hatch)', stroke: '#3c0019', 'stroke-width': 0.3 }));
+      } else if (s.k === 'ln') {
+        ft.append(S('line', { x1: mx(s.x1), y1: s.y1, x2: mx(s.x2), y2: s.y2, stroke: '#ffffff', 'stroke-width': 0.13, 'stroke-linecap': 'square' }));
       } else if (s.k === 'dash') {
         ft.append(S('line', { x1: mx(s.x1), y1: s.y1, x2: mx(s.x2), y2: s.y2, stroke: '#00142d', 'stroke-width': 0.45, 'stroke-dasharray': '1.9 1.5' }));
       } else if (s.k === 'num') {
