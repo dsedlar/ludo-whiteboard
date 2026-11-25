@@ -27,6 +27,19 @@ on the play (AirDrop works), and they tap **Import** in their Playbook.
 - **Playbook:** tags, notes, search, sort, a printable version, and a picture of any board to send.
 - **Present:** hides the toolbars for teaching from a TV or projector.
 
+## Importing plays
+
+The Playbook has two import buttons.
+
+- **Import** takes a Ludo export (`.json`) or a **FastDraw library** (`.fdb`). FastDraw plays come in
+  as editable plays with their steps, players, ball, cuts, passes, dribbles, screens, cones, shaded
+  areas, colors and notes; the playbook and series names become tags. Importing the same library
+  again replaces those plays instead of duplicating them. The reader in `fastdraw.js` was worked out
+  from sample files, so anything it does not recognise is skipped and listed after the import.
+- **Photo or PDF** takes a picture (for example a photo of a play drawn on paper) or a PDF. Each
+  picture or PDF page becomes a play with that picture as its board. You can draw on it, or switch to
+  a court view, where the picture sits faintly over the court for tracing.
+
 ## Cloud sync (Supabase)
 
 Plays are always saved on the iPad first, so the app works offline. When a coach signs in, the app
@@ -58,10 +71,11 @@ be seen by anyone who finds it.
 | `style.css` | Colors and layout |
 | `app.js` | All of the behavior |
 | `court.jpg` | The court image |
+| `fastdraw.js` | Reads FastDraw library files |
 | `cloud.js` | Syncs plays with Supabase when a coach is signed in |
 | `cloud-config.js` | Your Supabase project address and public key |
 | `supabase-setup.sql` | Creates the whiteboard's tables and access rules |
-| `vendor/` | The Supabase library, shipped with the app so it works offline |
+| `vendor/` | The Supabase and PDF libraries, shipped with the app so it works offline |
 | `team-playbook.json` | The plays published to everyone (see above) |
 | `sw.js` | Keeps a copy of the app on the device so it works offline |
 | `manifest.webmanifest`, `icon-*.png` | Home-screen name and icon |

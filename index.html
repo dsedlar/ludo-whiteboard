@@ -36,7 +36,8 @@
       </pattern>
     </defs>
     <g id="world">
-      <image href="court.jpg" width="1854" height="1157" preserveAspectRatio="none"/>
+      <image id="courtImage" href="court.jpg" width="1854" height="1157" preserveAspectRatio="none"/>
+      <g id="pic"></g>
       <g id="ovl"></g>
       <g id="ink"></g>
       <g id="live"></g>
@@ -48,6 +49,12 @@
     <h2>Overlays</h2>
     <ul id="overlayList" class="olist"></ul>
     <label class="check"><input type="checkbox" id="flipChk"> Ball attacks the other way</label>
+    <div id="picSection" hidden>
+      <h3>Picture</h3>
+      <p class="hint">In a court view the picture sits faintly over the court so you can trace it. The Pic view shows it on its own.</p>
+      <label class="check" for="picOpacity">Strength <input type="range" id="picOpacity" min="10" max="100" value="45"></label>
+      <button id="picRemove" class="btn small">Remove picture</button>
+    </div>
     <h3>Sets</h3>
     <p class="hint">A set switches on a group of overlays in one tap.</p>
     <ul id="setList" class="blist"></ul>
@@ -132,11 +139,13 @@
     <div class="row staff-only">
       <button id="newPlay" class="btn solid">New play</button>
       <button id="importBtn" class="btn">Import</button>
+      <button id="picBtn" class="btn">Photo or PDF</button>
       <button id="exportAll" class="btn">Export all</button>
       <button id="printBtn" class="btn">Print</button>
       <button id="closeBook" class="btn">Back to board</button>
     </div>
     <input id="importFile" type="file" hidden>
+    <input id="picFile" type="file" accept="image/*,application/pdf" hidden>
   </div>
   <div class="cloud">
     <span id="cloudStatus">Plays are saved on this iPad.</span>

@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 19; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 20; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -14,10 +14,16 @@ const fx = X => OX + X * SX, fy = Y => OY + Y * SY;
 
 const VIEWS = {
   full:  { label: 'Full',  name: 'Full court',      vb: [0, 0, IMG_W, IMG_H], rot: 0,   tf: '' },
-  tall:  { label: 'Tall',  name: 'Full court tall', vb: [0, 0, IMG_H, IMG_W], rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfL: { label: 'Left',  name: 'Left half',       vb: [0, 0, IMG_H, 987],   rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfR: { label: 'Right', name: 'Right half',      vb: [0, 0, IMG_H, 987],   rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)` },
+  tall:  { label: 'Tall',  name: 'Full court tall', vb: [0, 0, IMG_H, IMG_W], rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)`, inv: `rotate(-90) translate(${-IMG_H} 0)` },
+  halfL: { label: 'Left',  name: 'Left half',       vb: [0, 0, IMG_H, 987],   rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)`, inv: `rotate(-90) translate(${-IMG_H} 0)` },
+  halfR: { label: 'Right', name: 'Right half',      vb: [0, 0, IMG_H, 987],   rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)`, inv: `rotate(90) translate(0 ${-IMG_W})` },
 };
+// A play can carry a picture (a photo of a drawing, or a PDF page). In the "pic" view the picture is the
+// whole board; in a court view it is laid faintly over the court so it can be traced.
+const picHeight = pic => Math.round(IMG_W * pic.h / pic.w);
+const viewOf = st => (st.view === 'pic' && st.pic
+  ? { label: 'Picture', name: 'Picture', vb: [0, 0, IMG_W, picHeight(st.pic)], rot: 0, tf: '' }
+  : VIEWS[st['view']] || VIEWS.full);
 
 const COLORS = ['#111111', '#b20000', '#0b4fd6', '#0a7d3b', '#ffd400', '#ffffff'];
 const TOOLS = [
@@ -230,7 +236,7 @@ const courtImg = new Image(); courtImg.src = 'court.jpg';
 /* ---------- painting ---------- */
 function fillOverlays(g, st) {
   g.replaceChildren();
-  const rot = VIEWS[st.view].rot;
+  const rot = viewOf(st).rot;
   for (const o of OVERLAYS) {
     if (!st.ovl[o.id]) continue;
     const flip = o.dir && st.flip;
@@ -268,6 +274,19 @@ function fillOverlays(g, st) {
     g.append(layer);
   }
 }
+function fillPic(g, st, courtImage) {
+  g.replaceChildren();
+  if (courtImage) courtImage.style.display = st.view === 'pic' && st.pic ? 'none' : '';
+  if (!st.pic) return;
+  if (st.view === 'pic') {
+    g.removeAttribute('transform');
+    g.append(S('image', { href: st.pic.src, x: 0, y: 0, width: IMG_W, height: picHeight(st.pic), preserveAspectRatio: 'none' }));
+    return;
+  }
+  const v = viewOf(st), [x, y, w, h] = v.vb;
+  if (v.inv) g.setAttribute('transform', v.inv); else g.removeAttribute('transform');
+  g.append(S('image', { href: st.pic.src, x, y, width: w, height: h, preserveAspectRatio: 'xMidYMid meet', opacity: st.picOp || 0.45, 'pointer-events': 'none' }));
+}
 function fillInk(g, fr) {
   g.replaceChildren(...fr.ink.map(inkNode));
 }
@@ -295,7 +314,7 @@ function tokenNode(id, pos, rot, labels) {
 const paintOrder = { k: 0, c: 1, x: 2, o: 3, b: 4 };
 function fillTokens(g, st, fr) {
   g.replaceChildren();
-  const rot = VIEWS[st.view].rot;
+  const rot = viewOf(st).rot;
   const ids = Object.keys(fr.tok).sort((a, b) => paintOrder[kindOf(a)] - paintOrder[kindOf(b)]);
   for (const id of ids) {
     const kind = kindOf(id);
@@ -305,12 +324,13 @@ function fillTokens(g, st, fr) {
   }
 }
 function applyView() {
-  const v = VIEWS[state.view];
+  const v = viewOf(state);
   board.setAttribute('viewBox', v.vb.join(' '));
   if (v.tf) world.setAttribute('transform', v.tf); else world.removeAttribute('transform');
-  for (const b of $('views').children) b.setAttribute('aria-pressed', String(b.dataset.view === state.view));
+  for (const b of $('views').children) { b.setAttribute('aria-pressed', String(b.dataset.view === state.view)); if (b.dataset.view === 'pic') b.hidden = !state.pic; }
 }
 function paintBoard() {
+  fillPic($('pic'), state, $('courtImage'));
   fillOverlays(gOvl, state); fillInk(gInk, F()); fillTokens(gTok, state, F());
   syncChrome();
 }
@@ -324,6 +344,8 @@ function syncChrome() {
   $('showX').setAttribute('aria-pressed', String(state.show.x));
   $('showB').setAttribute('aria-pressed', String(state.show.b));
   $('flipChk').checked = state.flip;
+  $('picSection').hidden = !state.pic;
+  if (state.pic) $('picOpacity').value = String(Math.round((state.picOp || 0.45) * 100));
   const label = `${state.cur + 1} / ${state.frames.length}`;
   $('frameLabel').textContent = label; $('pFrameLabel').textContent = label;
   for (const id of ['framePrev', 'pPrev']) $(id).disabled = state.cur === 0;
@@ -429,14 +451,21 @@ function cleanTokens(raw, shift, view) {
   }
   return out;
 }
+function cleanPic(p) {
+  if (!p || typeof p.src !== 'string' || !/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(p.src) || p.src.length > 3000000) return null;
+  const w = Number(p.w), h = Number(p.h);
+  return w > 0 && h > 0 ? { src: p.src, w, h } : null;
+}
 function cleanPlay(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  const view = VIEWS[raw.view] ? raw.view : 'full';
+  const pic = cleanPic(raw.pic);
+  const view = raw.view === 'pic' && pic ? 'pic' : VIEWS[raw.view] ? raw.view : 'full';
   const st = blankState(view), shift = shiftFor(raw.v);
   st.id = typeof raw.id === 'string' ? raw.id.slice(0, 40) : null;
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
   st.tokMoved = !!raw.tokMoved;
+  if (pic) { st.pic = pic; st.picOp = Math.max(0.1, Math.min(1, Number(raw.picOp) || 0.45)); }
   st.team = !!raw.team;
   st.notes = String(raw.notes || '').slice(0, 4000);
   if (raw.hidden && typeof raw.hidden === 'object') { st.hidden = {}; for (const id in raw.hidden) if (TOKEN_ID.test(id) && raw.hidden[id]) st.hidden[id] = true; }
@@ -550,7 +579,7 @@ function playAnim() {
   const run = i => {
     if (!anim) return;
     state.cur = i; paintBoard();
-    const moves = movesFor(state.frames[i]), ids = Object.keys(moves), rot = VIEWS[state.view].rot;
+    const moves = movesFor(state.frames[i]), ids = Object.keys(moves), rot = viewOf(state).rot;
     const els = {};
     for (const id of ids) els[id] = gTok.querySelector(`[data-tok="${id}"]`);
     const t0 = performance.now(), dur = ids.length ? 1500 : 500;
@@ -632,7 +661,7 @@ board.addEventListener('pointermove', e => {
     const x = Math.round(Math.max(0, Math.min(IMG_W, p[0] + active.off[0]))), y = Math.round(Math.max(0, Math.min(IMG_H, p[1] + active.off[1])));
     if (!active.changed) { remember(); active.changed = true; }
     F().tok[active.tok] = [x, y];
-    active.el.setAttribute('transform', `translate(${x} ${y}) rotate(${-VIEWS[state.view].rot})`);
+    active.el.setAttribute('transform', `translate(${x} ${y}) rotate(${-viewOf(state).rot})`);
   } else if (active.mode === 'draw') {
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
     for (const ev of evs.length ? evs : [e]) {
@@ -732,6 +761,9 @@ function buildChrome() {
     });
     $(id[0] === 'o' ? 'labO' : 'labX').append(inp);
   }
+  const picBtn = H('button', { 'data-view': 'pic', 'aria-pressed': 'false', 'aria-label': 'Picture', hidden: '' }, 'Pic');
+  picBtn.addEventListener('click', () => setView('pic'));
+  $('views').append(picBtn);
 }
 function setView(id) {
   if (state.view === id || anim) return;
@@ -795,7 +827,7 @@ function addPiece(kind) {
     id = 'k' + n;
   } else if (F().tok[id]) { toast(kind === 'coach' ? 'The coach is already on the board.' : 'The second ball is already on the board.'); return; }
   remember();
-  const v = VIEWS[state.view], end = endOf(state.view);
+  const v = viewOf(state), end = endOf(state.view);
   const count = Object.keys(F().tok).filter(isExtra).length;
   const pos = spot([36 - (count % 5) * 3, 6 + Math.floor(count / 5) * 3], v === VIEWS.full || v === VIEWS.tall ? 'L' : end);
   for (const fr of state.frames) fr.tok[id] = pos.slice();
@@ -982,18 +1014,19 @@ function loadState(st) {
 
 /* ---------- pictures of the board ---------- */
 function thumb(st, frameIdx, bare) {
-  const v = VIEWS[st.view], fr = st.frames[frameIdx == null ? 0 : frameIdx];
+  const v = viewOf(st), fr = st.frames[frameIdx == null ? 0 : frameIdx];
   const svg = S('svg', { viewBox: v.vb.join(' '), preserveAspectRatio: 'xMidYMid meet', 'font-family': 'Helvetica, Arial, sans-serif' });
   const w = S('g', v.tf ? { transform: v.tf } : {});
   const o = S('g', {}), i = S('g', {}), t = S('g', {});
-  if (!bare) w.append(S('image', { href: 'court.jpg', width: IMG_W, height: IMG_H, preserveAspectRatio: 'none' }));
-  w.append(o, i, t);
-  fillOverlays(o, st); fillInk(i, fr); fillTokens(t, st, fr);
+  const onPicture = st.view === 'pic' && st.pic, pg = S('g', {});
+  if (!bare && !onPicture) w.append(S('image', { href: 'court.jpg', width: IMG_W, height: IMG_H, preserveAspectRatio: 'none' }));
+  w.append(pg, o, i, t);
+  fillPic(pg, st, null); fillOverlays(o, st); fillInk(i, fr); fillTokens(t, st, fr);
   svg.append(w);
   return svg;
 }
 async function boardImage(st, frameIdx) {
-  const v = VIEWS[st.view], [vx, vy, W, Hh] = v.vb, k = 2, head = 70;
+  const v = viewOf(st), [vx, vy, W, Hh] = v.vb, k = 2, head = 70;
   const cv = document.createElement('canvas');
   cv.width = W * k; cv.height = (Hh + head) * k;
   const ctx = cv.getContext('2d');
@@ -1007,7 +1040,7 @@ async function boardImage(st, frameIdx) {
   ctx.beginPath(); ctx.rect(vx, vy, W, Hh); ctx.clip();
   if (v.rot === 90) { ctx.translate(IMG_H, 0); ctx.rotate(Math.PI / 2); }
   if (v.rot === -90) { ctx.translate(0, IMG_W); ctx.rotate(-Math.PI / 2); }
-  ctx.drawImage(courtImg, 0, 0, IMG_W, IMG_H);
+  if (!(st.view === 'pic' && st.pic)) ctx.drawImage(courtImg, 0, 0, IMG_W, IMG_H);
   ctx.restore();
   const svg = thumb(st, frameIdx, true);
   svg.setAttribute('xmlns', NS); svg.setAttribute('width', W * k); svg.setAttribute('height', Hh * k);
@@ -1064,7 +1097,7 @@ function playCard(p, team) {
   });
   const title = H('b'); title.textContent = p.name || 'Untitled play';
   const when = H('small');
-  when.textContent = VIEWS[p.view].name + (p.frames.length > 1 ? ` · ${p.frames.length} steps` : '') + (team ? '' : ' · ' + new Date(p.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+  when.textContent = viewOf(p).name + (p.frames.length > 1 ? ` · ${p.frames.length} steps` : '') + (team ? '' : ' · ' + new Date(p.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
   const meta = H('div', { class: 'meta' }, title, when);
   if (p.tags.length) {
     const tags = H('div', { class: 'tags' });
@@ -1151,6 +1184,8 @@ $('importFile').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f) return;
   if (/\.fdb$/i.test(f.name)) { importFastDraw(f); return; }
+  if (/^image\//.test(f.type) || /\.(jpe?g|png|heic|webp)$/i.test(f.name)) { importPicture(f); return; }
+  if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) { importPdf(f); return; }
   try {
     const data = JSON.parse(await f.text());
     if (!data || data.app !== 'bishops-whiteboard' || !Array.isArray(data.plays)) throw new Error('wrong file');
@@ -1205,6 +1240,83 @@ async function importFastDraw(file) {
   renderPlaybook();
 }
 
+/* ---------- pictures and PDFs: a photo of a drawing, or pages from a PDF, become plays you can draw on ---------- */
+const PIC_MAX = 1600; // longest side in pixels, to keep plays small enough to store and sync
+function canvasToPic(cv) { return { src: cv.toDataURL('image/jpeg', 0.82), w: cv.width, h: cv.height }; }
+function picturePlay(name, pic, tag) {
+  const st = blankState('pic');
+  st.id = uid(); st.name = name.slice(0, 60); st.pic = pic; st.picOp = 0.45; st.tags = [tag]; st.updated = Date.now();
+  return st;
+}
+const baseName = f => f.name.replace(/\.[^.]+$/, '') || 'Imported picture';
+async function importPicture(file) {
+  try {
+    const url = URL.createObjectURL(file), img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const k = Math.min(1, PIC_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    URL.revokeObjectURL(url);
+    const play = picturePlay(baseName(file), canvasToPic(cv), 'Picture');
+    await dbPut('plays', clone(play));
+    loadState(play); showBook(false);
+    toast('Picture added. Draw on it, or pick a court view to trace it onto the court.');
+  } catch (e) { toast('That picture could not be opened.'); }
+}
+let pdfReady = null;
+function loadPdfLibrary() { // only fetched the first time a PDF is imported
+  if (!pdfReady) {
+    pdfReady = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'vendor/pdf.min.js';
+      s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js'; res(window.pdfjsLib); };
+      s.onerror = () => { pdfReady = null; rej(new Error('pdf library')); };
+      document.head.append(s);
+    });
+  }
+  return pdfReady;
+}
+async function importPdf(file) {
+  toast('Reading the PDF…');
+  try {
+    const lib = await loadPdfLibrary();
+    const doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const pages = Math.min(doc.numPages, 60);
+    let n = 0;
+    for (let k = 1; k <= pages; k++) {
+      const page = await doc.getPage(k);
+      const base = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: PIC_MAX / Math.max(base.width, base.height) });
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const name = baseName(file) + (doc.numPages > 1 ? ' p.' + k : '');
+      await dbPut('plays', picturePlay(name, canvasToPic(cv), 'PDF'));
+      n++;
+    }
+    $('importReport').textContent = `Imported ${n} page${n === 1 ? '' : 's'} from "${file.name}" as picture plays` + (doc.numPages > pages ? ` (the first ${pages} of ${doc.numPages})` : '') + '. Open one to draw on it or trace it onto the court.';
+    $('importReport').hidden = false;
+    toast(`Imported ${n} page${n === 1 ? '' : 's'}.`);
+    renderPlaybook();
+  } catch (e) { toast('That PDF could not be read.'); }
+}
+$('picBtn').addEventListener('click', () => $('picFile').click());
+$('picFile').addEventListener('change', e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) importPdf(f); else importPicture(f);
+});
+$('picOpacity').addEventListener('input', e => { state.picOp = Number(e.target.value) / 100; touched(); fillPic($('pic'), state, $('courtImage')); });
+$('picRemove').addEventListener('click', () => {
+  if ($('picRemove').dataset.sure !== '1') { $('picRemove').dataset.sure = '1'; $('picRemove').textContent = 'Really remove?'; return; }
+  $('picRemove').dataset.sure = ''; $('picRemove').textContent = 'Remove picture';
+  delete state.pic; if (state.view === 'pic') state.view = 'full';
+  touched(); paintAll();
+});
+
 /* ---------- printable playbook ---------- */
 async function showPrint() {
   const list = sorted([...(await myPlays()), ...(PLAYERS_MODE ? teamPlays : [])].filter(matches));
@@ -1213,12 +1325,12 @@ async function showPrint() {
   pages.replaceChildren();
   for (const p of list) {
     const head = H('h3'); head.textContent = p.name || 'Untitled play';
-    const sub = H('p', { class: 'psub' }); sub.textContent = [VIEWS[p.view].name, ...p.tags].join(' · ');
+    const sub = H('p', { class: 'psub' }); sub.textContent = [viewOf(p).name, ...p.tags].join(' · ');
     const steps = H('div', { class: 'psteps' });
     p.frames.forEach((_, i) => {
       const fig = H('figure', {}, thumb(p, i));
       if (p.frames.length > 1) { const c = H('figcaption'); c.textContent = 'Step ' + (i + 1); fig.append(c); }
-      const [, , w, h] = VIEWS[p.view].vb; fig.style.aspectRatio = `${w} / ${h}`;
+      const [, , w, h] = viewOf(p).vb; fig.style.aspectRatio = `${w} / ${h}`;
       steps.append(fig);
     });
     const card = H('section', { class: 'pcard' }, head, sub, steps);
