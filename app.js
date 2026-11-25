@@ -28,7 +28,7 @@ const TOKENS = ['o1', 'o2', 'o3', 'o4', 'o5', 'x1', 'x2', 'x3', 'x4', 'x5', 'bal
    "dir: true" means the overlay depends on which way the ball attacks, so the flip switch mirrors it. */
 const OVERLAYS = [
   {
-    id: 'thirds-boxes', name: 'Thirds and boxes', dir: true,
+    id: 'thirds-boxes', name: 'Jaws', dir: true,
     shapes: [
       { k: 'box', x: 0, y: 0, w: 11, h: 12 }, { k: 'box', x: 0, y: 38, w: 11, h: 12 },
       { k: 'box', x: 42, y: 0, w: 7, h: 11 }, { k: 'box', x: 42, y: 39, w: 7, h: 11 },
