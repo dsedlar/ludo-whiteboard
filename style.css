@@ -9,7 +9,7 @@
   --ink-muted: rgba(60, 0, 25, 0.75);
   --keyline: #b20000;
   --focus: #3c0019;
-  --stage: #671021;
+  --stage: #e9e3c8;
   --on-primary: #ffffff;
   --font-head: "Chromatic Pro Compressed", "Avenir Next Condensed", "Franklin Gothic Medium", "Arial Narrow", sans-serif;
   --font-body: "Chromatic Pro Grotesque", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
@@ -24,7 +24,7 @@
     --ink-muted: rgba(255, 255, 255, 0.78);
     --keyline: #ffffff;
     --focus: #ffffff;
-    --stage: #671021;
+    --stage: #1c000c;
     color-scheme: dark;
   }
 }
