@@ -3,16 +3,17 @@
    Court feet map onto the image with fx()/fy(), so overlays are written in real feet. */
 
 const NS = 'http://www.w3.org/2000/svg';
-const IMG_W = 2000, IMG_H = 1213;
+const IMG_W = 1750, IMG_H = 1213;
+const DATA_V = 2; // version 1 drawings were made on a court image that was 125 px wider at each end
 // Where the 84 x 50 ft playing surface sits inside court.jpg.
-const OX = 211, OY = 136, SX = 1577 / 84, SY = 940 / 50;
+const OX = 86, OY = 136, SX = 1577 / 84, SY = 940 / 50;
 const fx = X => OX + X * SX, fy = Y => OY + Y * SY;
 
 const VIEWS = {
   full:  { label: 'Full',       vb: [0, 0, IMG_W, IMG_H],  rot: 0,   tf: '' },
   tall:  { label: 'Full tall',  vb: [0, 0, IMG_H, IMG_W],  rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfL: { label: 'Left half',  vb: [60, 125, 1093, 935],  rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfR: { label: 'Right half', vb: [60, 125, 1093, 935],  rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)` },
+  halfL: { label: 'Left half',  vb: [60, 0, 1093, 935],  rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
+  halfR: { label: 'Right half', vb: [60, 0, 1093, 935],  rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)` },
 };
 
 const COLORS = ['#111111', '#b20000', '#0b4fd6', '#0a7d3b', '#ffd400', '#ffffff'];
@@ -179,7 +180,7 @@ function defaultTokens(view) {
   return out;
 }
 function blankState(view) {
-  return { id: null, name: '', view, ovl: {}, flip: false, ink: [], tok: defaultTokens(view), tokMoved: false, show: { o: true, x: true, b: true } };
+  return { v: DATA_V, id: null, name: '', view, ovl: {}, flip: false, ink: [], tok: defaultTokens(view), tokMoved: false, show: { o: true, x: true, b: true } };
 }
 
 let state = blankState('halfL');
@@ -337,11 +338,11 @@ const dbPut = (name, v) => store(name, 'readwrite', s => (s ? s.put(v) : void me
 const dbDel = (name, id) => store(name, 'readwrite', s => (s ? s.delete(id) : void mem[name].delete(id)));
 
 /* ---------- validating anything loaded from disk or an imported file ---------- */
-function cleanInk(list) {
+function cleanInk(list, dx) {
   const out = [];
   for (const it of Array.isArray(list) ? list : []) {
     if (!it || !INK_TYPES.includes(it.t) || !/^#[0-9a-f]{6}$/i.test(it.c) || !Array.isArray(it.p)) continue;
-    const p = it.p.slice(0, 4000).map(Number);
+    const p = it.p.slice(0, 4000).map((n, i) => Number(n) + (dx && i % 2 === 0 ? dx : 0));
     if (p.length < 4 || p.some(n => !Number.isFinite(n))) continue;
     out.push({ id: uid(), t: it.t, c: it.c, p });
   }
@@ -354,11 +355,12 @@ function cleanPlay(raw) {
   st.id = typeof raw.id === 'string' ? raw.id.slice(0, 40) : null;
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
-  st.ink = cleanInk(raw.ink);
+  const dx = raw.v === DATA_V ? 0 : -125;
+  st.ink = cleanInk(raw.ink, dx);
   st.tokMoved = !!raw.tokMoved;
   for (const id of TOKENS) {
     const p = raw.tok && raw.tok[id];
-    if (Array.isArray(p) && Number.isFinite(+p[0]) && Number.isFinite(+p[1])) st.tok[id] = [+p[0], +p[1]];
+    if (Array.isArray(p) && Number.isFinite(+p[0]) && Number.isFinite(+p[1])) st.tok[id] = [+p[0] + dx, +p[1]];
   }
   if (raw.show) st.show = { o: raw.show.o !== false, x: raw.show.x !== false, b: raw.show.b !== false };
   if (raw.ovl && typeof raw.ovl === 'object') for (const k in raw.ovl) if (raw.ovl[k]) st.ovl[String(k).slice(0, 40)] = true;
@@ -566,7 +568,7 @@ $('fingerChk').addEventListener('change', e => { fingerDraw = e.target.checked; 
 $('ovlSave').addEventListener('click', async () => {
   if (!state.ink.length) { toast('Draw the areas on the board first.'); return; }
   const name = $('ovlName').value.trim() || 'Overlay ' + (customOverlays.length + 1);
-  const o = { id: 'c-' + uid(), name: name.slice(0, 40), items: clone(state.ink) };
+  const o = { v: DATA_V, id: 'c-' + uid(), name: name.slice(0, 40), items: clone(state.ink) };
   try { await dbPut('overlays', o); } catch (e) { toast('Could not save the overlay on this iPad.'); return; }
   customOverlays.push(o);
   remember();
@@ -698,9 +700,9 @@ $('importFile').addEventListener('change', async e => {
     if (!data || data.app !== 'bishops-whiteboard' || !Array.isArray(data.plays)) throw new Error('wrong file');
     const idMap = {};
     for (const o of Array.isArray(data.overlays) ? data.overlays : []) {
-      const items = cleanInk(o && o.items);
+      const items = cleanInk(o && o.items, o && o.v === DATA_V ? 0 : -125);
       if (!items.length) continue;
-      const fresh = { id: 'c-' + uid(), name: String(o.name || 'Overlay').slice(0, 40), items };
+      const fresh = { v: DATA_V, id: 'c-' + uid(), name: String(o.name || 'Overlay').slice(0, 40), items };
       idMap[o.id] = fresh.id;
       await dbPut('overlays', fresh); customOverlays.push(fresh);
     }
@@ -737,7 +739,7 @@ async function start() {
   $('fingerChk').checked = fingerDraw;
   setTool(tool); setColor(color);
   paintAll();
-  try { customOverlays = (await dbAll('overlays')).map(o => ({ id: String(o.id), name: String(o.name || 'Overlay').slice(0, 40), items: cleanInk(o.items) })); } catch (e) { customOverlays = []; }
+  try { customOverlays = (await dbAll('overlays')).map(o => ({ v: DATA_V, id: String(o.id), name: String(o.name || 'Overlay').slice(0, 40), items: cleanInk(o.items, o.v === DATA_V ? 0 : -125) })); } catch (e) { customOverlays = []; }
   fillOverlays(gOvl, state);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
