@@ -1,10 +1,11 @@
 // Offline support: keep a copy of every app file on the iPad, serve from that copy first,
 // and quietly refresh the copy whenever there is a connection.
-const CACHE = 'bishops-whiteboard-v21';
+const CACHE = 'bishops-whiteboard-v22';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'fastdraw.js', 'court.jpg', 'team-playbook.json', 'cloud.js', 'cloud-config.js', 'vendor/supabase.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // 'reload' skips the browser's own short-term copy, so a new version never installs with stale files
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -14,7 +15,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(e.request, { ignoreSearch: true });
-    const fresh = fetch(e.request).then(res => {
+    const fresh = fetch(e.request, { cache: 'no-cache' }).then(res => {
       if (res.ok) cache.put(e.request, res.clone());
       return res;
     }).catch(() => hit);
