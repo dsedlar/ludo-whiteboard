@@ -1,4 +1,4 @@
-# Bishops Whiteboard
+# Ludo Whiteboard
 
 A basketball whiteboard for VES, built for the iPad Pro and Apple Pencil. It uses our own court,
 our own overlays, and keeps a playbook on the iPad. It works with no Wi-Fi once installed.

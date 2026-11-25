@@ -1,5 +1,5 @@
 'use strict';
-/* Bishops Whiteboard. Everything is drawn in "world" units, which are the pixels of court.jpg.
+/* Ludo Whiteboard. Everything is drawn in "world" units, which are the pixels of court.jpg.
    Court feet map onto the image with fx()/fy(), so overlays and alignments are written in real feet. */
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -997,7 +997,7 @@ async function boardImage(st, frameIdx) {
   } finally { URL.revokeObjectURL(url); }
   return new Promise(res => cv.toBlob(res, 'image/png'));
 }
-const fileSlug = s => (s || 'bishops-play').replace(/[^\w -]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'bishops-play';
+const fileSlug = s => (s || 'ludo-play').replace(/[^\w -]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'ludo-play';
 async function shareFile(file, title) {
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title }); return; }
@@ -1010,7 +1010,7 @@ $('shareBtn').addEventListener('click', async () => {
   try {
     const blob = await boardImage(state, state.cur);
     const step = state.frames.length > 1 ? `-step-${state.cur + 1}` : '';
-    await shareFile(new File([blob], fileSlug(state.name) + step + '.png', { type: 'image/png' }), state.name || 'Bishops play');
+    await shareFile(new File([blob], fileSlug(state.name) + step + '.png', { type: 'image/png' }), state.name || 'Ludo play');
   } catch (e) { toast('Could not make the picture on this device.'); }
 });
 
@@ -1121,7 +1121,7 @@ async function exportPlays(plays, label, fname) {
 $('exportAll').addEventListener('click', async () => {
   const plays = await myPlays();
   if (!plays.length) { toast('There are no saved plays to export yet.'); return; }
-  exportPlays(plays, 'Bishops playbook', 'team-playbook.json');
+  exportPlays(plays, 'Ludo playbook', 'team-playbook.json');
 });
 $('importBtn').addEventListener('click', () => $('importFile').click());
 $('importFile').addEventListener('change', async e => {
@@ -1151,7 +1151,7 @@ $('importFile').addEventListener('change', async e => {
     toast(n === 1 ? 'Imported 1 play.' : `Imported ${n} plays.`);
     renderPlaybook();
   } catch (err) {
-    toast('That file is not a Bishops Whiteboard export.');
+    toast('That file is not a Ludo Whiteboard export.');
   }
 });
 
