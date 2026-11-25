@@ -1,7 +1,7 @@
 // Offline support: keep a copy of every app file on the iPad, serve from that copy first,
 // and quietly refresh the copy whenever there is a connection.
-const CACHE = 'bishops-whiteboard-v13';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'court.jpg', 'team-playbook.json', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'bishops-whiteboard-v14';
+const FILES = ['./', 'index.html', 'style.css', 'app.js', 'court.jpg', 'team-playbook.json', 'cloud.js', 'firebase-config.js', 'vendor/firebase-app-compat.js', 'vendor/firebase-auth-compat.js', 'vendor/firebase-firestore-compat.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

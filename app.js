@@ -207,7 +207,7 @@ function defaultTokens(view) {
 }
 function blankState(view) {
   return {
-    v: DATA_V, id: null, name: '', view, ovl: {}, flip: false, tags: [], notes: '', labels: {},
+    v: DATA_V, id: null, name: '', view, ovl: {}, flip: false, tags: [], notes: '', labels: {}, team: false,
     frames: [{ ink: [], tok: defaultTokens(view) }], cur: 0, tokMoved: false, show: { o: true, x: true, b: true },
   };
 }
@@ -352,8 +352,17 @@ function touched() {
 function savePrefs() {
   try { localStorage.setItem('wb.prefs', JSON.stringify({ tool, color, fingerDraw, penSeen })); } catch (e) { /* ignore */ }
 }
-function saveLib() {
+function saveLib(quiet) {
+  if (!quiet) lib.updated = Date.now();
   try { localStorage.setItem('wb.lib', JSON.stringify(lib)); } catch (e) { /* ignore */ }
+  if (!quiet && onLocalChange) onLocalChange('lib');
+}
+function cleanLib(saved) {
+  const out = { sets: [], aligns: [], updated: Number(saved && saved.updated) || 0 };
+  if (!saved) return out;
+  out.sets = (Array.isArray(saved.sets) ? saved.sets : []).filter(s => s && Array.isArray(s.ids)).map(s => ({ id: String(s.id), name: String(s.name).slice(0, 30), ids: s.ids.map(String) }));
+  out.aligns = (Array.isArray(saved.aligns) ? saved.aligns : []).filter(a => a && a.tok).map(a => ({ id: String(a.id), name: String(a.name).slice(0, 30), tok: cleanTokens(a.tok, [0, 0], 'halfL') }));
+  return out;
 }
 
 /* ---------- storage: plays and custom overlays live in IndexedDB on this iPad ---------- */
@@ -386,8 +395,15 @@ async function store(name, mode, fn) {
   });
 }
 const dbAll = name => store(name, 'readonly', s => (s ? s.getAll() : { result: [...mem[name].values()] }));
-const dbPut = (name, v) => store(name, 'readwrite', s => (s ? s.put(v) : void mem[name].set(v.id, v)));
-const dbDel = (name, id) => store(name, 'readwrite', s => (s ? s.delete(id) : void mem[name].delete(id)));
+let onLocalChange = null; // cloud.js sets this so it hears about every local save and delete
+const dbPut = (name, v, quiet) => {
+  if (!quiet && onLocalChange) onLocalChange('put', name, v);
+  return store(name, 'readwrite', s => (s ? s.put(v) : void mem[name].set(v.id, v)));
+};
+const dbDel = (name, id, quiet) => {
+  if (!quiet && onLocalChange) onLocalChange('del', name, id);
+  return store(name, 'readwrite', s => (s ? s.delete(id) : void mem[name].delete(id)));
+};
 
 /* ---------- validating anything loaded from disk or an imported file ---------- */
 function cleanInk(list, shift) {
@@ -419,6 +435,7 @@ function cleanPlay(raw) {
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
   st.tokMoved = !!raw.tokMoved;
+  st.team = !!raw.team;
   st.notes = String(raw.notes || '').slice(0, 2000);
   st.tags = (Array.isArray(raw.tags) ? raw.tags : []).map(t => String(t).trim().slice(0, 30)).filter(Boolean).slice(0, 12);
   if (raw.labels && typeof raw.labels === 'object') {
@@ -433,7 +450,7 @@ function cleanPlay(raw) {
   return st;
 }
 function cleanOverlay(o) {
-  return { v: DATA_V, id: String(o.id).slice(0, 40), name: String(o.name || 'Overlay').slice(0, 40), items: cleanInk(o.items, shiftFor(o.v)) };
+  return { v: DATA_V, id: String(o.id).slice(0, 40), name: String(o.name || 'Overlay').slice(0, 40), updated: Number(o.updated) || 0, items: cleanInk(o.items, shiftFor(o.v)) };
 }
 
 /* ---------- frames and animation ---------- */
@@ -884,7 +901,7 @@ $('fingerChk').addEventListener('change', e => { fingerDraw = e.target.checked; 
 $('ovlSave').addEventListener('click', async () => {
   if (!F().ink.length) { toast('Draw the areas on the board first.'); return; }
   const name = $('ovlName').value.trim() || 'Overlay ' + (customOverlays.length + 1);
-  const o = { v: DATA_V, id: 'c-' + uid(), name: name.slice(0, 40), items: clone(F().ink) };
+  const o = { v: DATA_V, id: 'c-' + uid(), name: name.slice(0, 40), updated: Date.now(), items: clone(F().ink) };
   try { await dbPut('overlays', o); } catch (e) { toast('Could not save the overlay on this iPad.'); return; }
   customOverlays.push(o);
   remember();
@@ -907,6 +924,7 @@ function askDetails(title) {
   $('dlgTitle').textContent = title;
   $('nameInput').value = state.name || '';
   $('notesInput').value = state.notes || '';
+  $('teamChk').checked = !!state.team;
   const chosen = new Set(state.tags);
   const chips = $('tagChips');
   chips.replaceChildren();
@@ -928,7 +946,7 @@ $('nameForm').addEventListener('submit', e => {
   if (!name) return;
   const tags = [...$('tagChips').children].filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent);
   for (const t of $('tagsInput').value.split(',')) { const v = t.trim().slice(0, 30); if (v && !tags.includes(v)) tags.push(v); }
-  closeDialog({ name: name.slice(0, 60), tags: tags.slice(0, 12), notes: $('notesInput').value.slice(0, 2000) });
+  closeDialog({ name: name.slice(0, 60), tags: tags.slice(0, 12), notes: $('notesInput').value.slice(0, 2000), team: $('teamChk').checked });
 });
 async function savePlay(details) {
   if (PLAYERS_MODE) return;
@@ -1135,7 +1153,7 @@ $('importFile').addEventListener('change', async e => {
       if (!o) continue;
       const fresh = cleanOverlay(o);
       if (!fresh.items.length) continue;
-      fresh.id = 'c-' + uid(); idMap[o.id] = fresh.id;
+      fresh.id = 'c-' + uid(); fresh.updated = Date.now(); idMap[o.id] = fresh.id;
       await dbPut('overlays', fresh); customOverlays.push(fresh);
     }
     let n = 0;
@@ -1206,11 +1224,7 @@ async function start() {
       if (COLORS.includes(prefs.color)) color = prefs.color;
       fingerDraw = prefs.fingerDraw !== false; penSeen = !!prefs.penSeen;
     }
-    const saved = JSON.parse(localStorage.getItem('wb.lib') || 'null');
-    if (saved) {
-      lib.sets = (Array.isArray(saved.sets) ? saved.sets : []).filter(s => s && Array.isArray(s.ids)).map(s => ({ id: String(s.id), name: String(s.name).slice(0, 30), ids: s.ids.map(String) }));
-      lib.aligns = (Array.isArray(saved.aligns) ? saved.aligns : []).filter(a => a && a.tok).map(a => ({ id: String(a.id), name: String(a.name).slice(0, 30), tok: cleanTokens(a.tok, [0, 0], 'halfL') }));
-    }
+    lib = cleanLib(JSON.parse(localStorage.getItem('wb.lib') || 'null'));
     if (!PLAYERS_MODE) { const cur = cleanPlay(JSON.parse(localStorage.getItem('wb.current') || 'null')); if (cur) state = cur; }
   } catch (e) { /* start fresh */ }
   $('fingerChk').checked = fingerDraw;
