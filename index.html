@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Bishops Whiteboard</title>
+<meta name="description" content="VES basketball whiteboard: our court, our overlays, saved plays. Works offline.">
+<meta name="theme-color" content="#b20000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Whiteboard">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">Bishops <span>Whiteboard</span></div>
+  <button id="playName" class="playname" title="Rename this play">Untitled play</button>
+  <button id="saveBtn" class="btn solid">Save</button>
+  <div class="seg" id="views" role="group" aria-label="Court view"></div>
+  <button id="overlayBtn" class="btn" aria-expanded="false">Overlays</button>
+  <button id="bookBtn" class="btn">Playbook</button>
+</header>
+
+<main id="stage">
+  <svg id="board" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Court whiteboard">
+    <defs>
+      <pattern id="hatch" patternUnits="userSpaceOnUse" width="1.5" height="1.5" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="1.5" stroke="#3c0019" stroke-width="0.34"/>
+      </pattern>
+    </defs>
+    <g id="world">
+      <image href="court.jpg" width="2000" height="1213" preserveAspectRatio="none"/>
+      <g id="ovl"></g>
+      <g id="ink"></g>
+      <g id="live"></g>
+      <g id="tok"></g>
+    </g>
+  </svg>
+
+  <aside id="overlayPanel" class="panel" hidden>
+    <h2>Overlays</h2>
+    <ul id="overlayList" class="olist"></ul>
+    <label class="check"><input type="checkbox" id="flipChk"> Ball attacks the other way</label>
+    <h3>Make your own</h3>
+    <p class="hint">Draw the areas on the board, then save the drawing as an overlay you can switch on for any play.</p>
+    <div class="row">
+      <input id="ovlName" type="text" maxlength="40" placeholder="Overlay name" autocomplete="off">
+      <button id="ovlSave" class="btn solid">Save drawing</button>
+    </div>
+    <h3>Drawing</h3>
+    <label class="check"><input type="checkbox" id="fingerChk"> Draw with a finger too</label>
+    <p class="hint">With this off, the Pencil draws and a finger only moves players, so a resting hand never marks the board.</p>
+  </aside>
+</main>
+
+<footer class="tools">
+  <div class="group" id="toolBtns" role="group" aria-label="Tools"></div>
+  <div class="group" id="colorBtns" role="group" aria-label="Pencil color"></div>
+  <div class="group" role="group" aria-label="Players">
+    <button class="tool toggle" id="showO" aria-pressed="true"><b class="chip o">1</b><span>Offense</span></button>
+    <button class="tool toggle" id="showX" aria-pressed="true"><b class="chip x">X</b><span>Defense</span></button>
+    <button class="tool toggle" id="showB" aria-pressed="true"><b class="chip b"></b><span>Ball</span></button>
+    <button class="tool" id="resetTok"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.2-5.1M5 4v4h4"/></svg><span>Line up</span></button>
+  </div>
+  <div class="group" role="group" aria-label="History">
+    <button class="tool" id="undoBtn"><svg viewBox="0 0 24 24"><path d="M8 5 3 10l5 5M3 10h11a5 5 0 0 1 0 10h-4"/></svg><span>Undo</span></button>
+    <button class="tool" id="redoBtn"><svg viewBox="0 0 24 24"><path d="m16 5 5 5-5 5M21 10H10a5 5 0 0 0 0 10h4"/></svg><span>Redo</span></button>
+    <button class="tool danger" id="trashBtn"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg><span>Clear</span></button>
+  </div>
+</footer>
+
+<section id="playbook" class="sheet" hidden aria-label="Playbook">
+  <div class="sheet-head">
+    <h2>Playbook</h2>
+    <div class="row">
+      <button id="newPlay" class="btn solid">New play</button>
+      <button id="importBtn" class="btn">Import</button>
+      <button id="exportAll" class="btn">Export all</button>
+      <button id="closeBook" class="btn">Back to board</button>
+    </div>
+    <input id="importFile" type="file" accept=".json,application/json" hidden>
+  </div>
+  <div id="playGrid" class="grid"></div>
+</section>
+
+<div id="dialog" class="scrim" hidden>
+  <form id="nameForm" class="dialog">
+    <h2 id="dlgTitle">Save play</h2>
+    <label for="nameInput">Play name</label>
+    <input id="nameInput" type="text" maxlength="60" autocomplete="off" required>
+    <div class="row end">
+      <button type="button" id="dlgCancel" class="btn">Cancel</button>
+      <button type="submit" class="btn solid">Save</button>
+    </div>
+  </form>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toastMsg"></span><button id="toastAct" class="btn" hidden></button></div>
+
+<script src="app.js"></script>
+</body>
+</html>
