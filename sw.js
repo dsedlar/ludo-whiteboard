@@ -1,7 +1,7 @@
 // Offline support: keep a copy of every app file on the iPad, serve from that copy first,
 // and quietly refresh the copy whenever there is a connection.
-const CACHE = 'bishops-whiteboard-v9';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'court.jpg', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'bishops-whiteboard-v10';
+const FILES = ['./', 'index.html', 'style.css', 'app.js', 'court.jpg', 'team-playbook.json', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -18,6 +18,8 @@ self.addEventListener('fetch', e => {
       if (res.ok) cache.put(e.request, res.clone());
       return res;
     }).catch(() => hit);
+    // The team playbook should be as new as possible, so try the network first for that one file.
+    if (url.pathname.endsWith('team-playbook.json')) return (await fresh) || hit;
     return hit || fresh;
   }));
 });

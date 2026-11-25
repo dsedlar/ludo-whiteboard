@@ -17,11 +17,14 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand">Bishops <span>Whiteboard</span></div>
-  <button id="playName" class="playname" title="Rename this play">Untitled play</button>
+  <div class="brand">Bishops</div>
+  <button id="playName" class="playname" title="Name, tags and notes for this play">Untitled play</button>
   <button id="saveBtn" class="btn solid">Save</button>
   <div class="seg" id="views" role="group" aria-label="Court view"></div>
+  <button id="piecesBtn" class="btn" aria-expanded="false">Pieces</button>
   <button id="overlayBtn" class="btn" aria-expanded="false">Overlays</button>
+  <button id="shareBtn" class="btn" title="Send a picture of the board">Picture</button>
+  <button id="presentBtn" class="btn">Present</button>
   <button id="bookBtn" class="btn">Playbook</button>
 </header>
 
@@ -45,26 +48,76 @@
     <h2>Overlays</h2>
     <ul id="overlayList" class="olist"></ul>
     <label class="check"><input type="checkbox" id="flipChk"> Ball attacks the other way</label>
+    <h3>Sets</h3>
+    <p class="hint">A set switches on a group of overlays in one tap.</p>
+    <ul id="setList" class="blist"></ul>
+    <div class="row">
+      <input id="setName" type="text" maxlength="30" placeholder="Set name" autocomplete="off">
+      <button id="setSave" class="btn solid small">Save current as set</button>
+    </div>
     <h3>Make your own</h3>
     <p class="hint">Draw the areas on the board, then save the drawing as an overlay you can switch on for any play.</p>
     <div class="row">
       <input id="ovlName" type="text" maxlength="40" placeholder="Overlay name" autocomplete="off">
-      <button id="ovlSave" class="btn solid">Save drawing</button>
+      <button id="ovlSave" class="btn solid small">Save drawing</button>
     </div>
     <h3>Drawing</h3>
     <label class="check"><input type="checkbox" id="fingerChk"> Draw with a finger too</label>
     <p class="hint">With this off, the Pencil draws and a finger only moves players, so a resting hand never marks the board.</p>
   </aside>
+
+  <aside id="piecesPanel" class="panel" hidden>
+    <h2>Pieces</h2>
+    <div class="row">
+      <button class="btn small toggle" id="showO" aria-pressed="true">Offense</button>
+      <button class="btn small toggle" id="showX" aria-pressed="true">Defense</button>
+      <button class="btn small toggle" id="showB" aria-pressed="true">Ball</button>
+      <button class="btn small" id="resetTok">Line up</button>
+    </div>
+    <h3>Offense alignment</h3>
+    <div class="row" id="offBtns"></div>
+    <h3>Defense</h3>
+    <div class="row" id="defBtns"></div>
+    <h3>Your alignments</h3>
+    <ul id="alignList" class="blist"></ul>
+    <div class="row">
+      <input id="alignName" type="text" maxlength="30" placeholder="Alignment name" autocomplete="off">
+      <button id="alignSave" class="btn solid small">Save current spots</button>
+    </div>
+    <h3>Extra pieces</h3>
+    <div class="row">
+      <button class="btn small" id="addCone">Add cone</button>
+      <button class="btn small" id="addCoach">Add coach</button>
+      <button class="btn small" id="addBall">Add ball</button>
+      <button class="btn small" id="clearExtras">Remove extras</button>
+    </div>
+    <p class="hint">To remove one piece, pick Erase and tap it.</p>
+    <h3>Labels</h3>
+    <p class="hint">Type a jersey number or initials (up to 3 characters) to replace 1 to 5.</p>
+    <div class="labels" id="labO"></div>
+    <div class="labels" id="labX"></div>
+  </aside>
+
+  <div id="presentBar" class="pbar">
+    <button class="tool" id="pPrev" aria-label="Previous step"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg><span>Back</span></button>
+    <output id="pFrameLabel" class="flabel">1 / 1</output>
+    <button class="tool" id="pNext" aria-label="Next step"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg><span>Next</span></button>
+    <button class="tool" id="pPlay"><svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg><span>Play</span></button>
+    <button class="tool draw-only" id="pLaser" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M4 20 14 10M12 4v3M20 12h-3M18 6l-2 2M18 18l-2-2M6 6l2 2"/><circle cx="15" cy="9" r="2"/></svg><span>Laser</span></button>
+    <button class="tool" id="pExit"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Exit</span></button>
+  </div>
 </main>
 
 <footer class="tools">
   <div class="group" id="toolBtns" role="group" aria-label="Tools"></div>
   <div class="group" id="colorBtns" role="group" aria-label="Pencil color"></div>
-  <div class="group" role="group" aria-label="Players">
-    <button class="tool toggle" id="showO" aria-pressed="true"><b class="chip o">1</b><span>Offense</span></button>
-    <button class="tool toggle" id="showX" aria-pressed="true"><b class="chip x">X</b><span>Defense</span></button>
-    <button class="tool toggle" id="showB" aria-pressed="true"><b class="chip b"></b><span>Ball</span></button>
-    <button class="tool" id="resetTok"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.2-5.1M5 4v4h4"/></svg><span>Line up</span></button>
+  <div class="group" role="group" aria-label="Steps">
+    <button class="tool" id="framePrev" aria-label="Previous step"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg><span>Back</span></button>
+    <output id="frameLabel" class="flabel">1 / 1</output>
+    <button class="tool" id="frameNext" aria-label="Next step"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg><span>Next</span></button>
+    <button class="tool" id="frameAdd"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Add</span></button>
+    <button class="tool" id="frameDel" aria-label="Delete this step"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg><span>Remove</span></button>
+    <button class="tool" id="playBtn"><svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg><span>Play</span></button>
   </div>
   <div class="group" role="group" aria-label="History">
     <button class="tool" id="undoBtn"><svg viewBox="0 0 24 24"><path d="M8 5 3 10l5 5M3 10h11a5 5 0 0 1 0 10h-4"/></svg><span>Undo</span></button>
@@ -76,15 +129,41 @@
 <section id="playbook" class="sheet" hidden aria-label="Playbook">
   <div class="sheet-head">
     <h2>Playbook</h2>
-    <div class="row">
+    <div class="row staff-only">
       <button id="newPlay" class="btn solid">New play</button>
       <button id="importBtn" class="btn">Import</button>
       <button id="exportAll" class="btn">Export all</button>
+      <button id="printBtn" class="btn">Print</button>
       <button id="closeBook" class="btn">Back to board</button>
     </div>
     <input id="importFile" type="file" accept=".json,application/json" hidden>
   </div>
-  <div id="playGrid" class="grid"></div>
+  <div class="filters">
+    <input id="bookSearch" type="text" placeholder="Search plays" autocomplete="off" aria-label="Search plays">
+    <label class="sortlab">Sort
+      <select id="bookSort"><option value="recent">Newest first</option><option value="name">By name</option></select>
+    </label>
+  </div>
+  <div id="tagFilter" class="chips"></div>
+  <div id="mineSection">
+    <h3 class="sect">My plays</h3>
+    <div id="playGrid" class="grid"></div>
+  </div>
+  <div id="teamSection" hidden>
+    <h3 class="sect">Team playbook</h3>
+    <div id="teamGrid" class="grid"></div>
+  </div>
+</section>
+
+<section id="printView" class="sheet" hidden aria-label="Printable playbook">
+  <div class="sheet-head noprint">
+    <h2>Print playbook</h2>
+    <div class="row">
+      <button id="printGo" class="btn solid">Print or save as PDF</button>
+      <button id="printClose" class="btn">Close</button>
+    </div>
+  </div>
+  <div id="printPages"></div>
 </section>
 
 <div id="dialog" class="scrim" hidden>
@@ -92,6 +171,12 @@
     <h2 id="dlgTitle">Save play</h2>
     <label for="nameInput">Play name</label>
     <input id="nameInput" type="text" maxlength="60" autocomplete="off" required>
+    <span class="lab">Tags</span>
+    <div id="tagChips" class="chips"></div>
+    <label for="tagsInput">Other tags, separated by commas</label>
+    <input id="tagsInput" type="text" maxlength="120" autocomplete="off">
+    <label for="notesInput">Coaching notes</label>
+    <textarea id="notesInput" rows="4" maxlength="2000"></textarea>
     <div class="row end">
       <button type="button" id="dlgCancel" class="btn">Cancel</button>
       <button type="submit" class="btn solid">Save</button>
