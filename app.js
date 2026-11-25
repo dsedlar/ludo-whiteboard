@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 18; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 19; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -26,7 +26,7 @@ const TOOLS = [
 ];
 const INK_TYPES = ['cut', 'pass', 'dribble', 'screen', 'line', 'zone'];
 const BASE_TOKENS = ['o1', 'o2', 'o3', 'o4', 'o5', 'x1', 'x2', 'x3', 'x4', 'x5', 'ball'];
-const TOKEN_ID = /^(o[1-5]|x[1-5]|ball2?|coach|k\d{1,2})$/;
+const TOKEN_ID = /^([ox]([1-9]|1\d|20)|ball\d?|coach|k\d{1,2})$/; // imported drills can have more than five a side
 const PRESET_TAGS = ['Man offense', 'Zone offense', 'Press break', 'Baseline OB', 'Sideline OB', 'Defense', 'Press', 'Drill'];
 const PLAYERS_MODE = /[?#&]players\b/.test(location.search + location.hash);
 
@@ -284,7 +284,7 @@ function tokenNode(id, pos, rot, labels) {
     return g;
   }
   const off = kind === 'o', coach = kind === 'c';
-  const label = String((labels && labels[id]) || (coach ? 'C' : off ? id[1] : 'X' + id[1])).slice(0, 3);
+  const label = String((labels && labels[id]) || (coach ? 'C' : off ? id.slice(1) : 'X' + id.slice(1))).slice(0, 3);
   g.append(S('circle', { r: 25, fill: coach ? '#00142d' : off ? '#b20000' : '#ffffff', stroke: off || coach ? '#ffffff' : '#3c0019', 'stroke-width': 3 }));
   const size = label.length >= 3 ? 19 : label.length === 2 ? 24 : 30;
   const t = S('text', { 'text-anchor': 'middle', y: size * 0.35, 'font-size': size, 'font-weight': 700, fill: off || coach ? '#ffffff' : '#3c0019' });
@@ -300,6 +300,7 @@ function fillTokens(g, st, fr) {
   for (const id of ids) {
     const kind = kindOf(id);
     if (kind in st.show && !st.show[kind]) continue;
+    if (st.hidden && st.hidden[id]) continue; // a piece this play does not use
     g.append(tokenNode(id, fr.tok[id], rot, st.labels));
   }
 }
@@ -437,10 +438,11 @@ function cleanPlay(raw) {
   st.flip = !!raw.flip;
   st.tokMoved = !!raw.tokMoved;
   st.team = !!raw.team;
-  st.notes = String(raw.notes || '').slice(0, 2000);
+  st.notes = String(raw.notes || '').slice(0, 4000);
+  if (raw.hidden && typeof raw.hidden === 'object') { st.hidden = {}; for (const id in raw.hidden) if (TOKEN_ID.test(id) && raw.hidden[id]) st.hidden[id] = true; }
   st.tags = (Array.isArray(raw.tags) ? raw.tags : []).map(t => String(t).trim().slice(0, 30)).filter(Boolean).slice(0, 12);
   if (raw.labels && typeof raw.labels === 'object') {
-    for (const id in raw.labels) if (/^[ox][1-5]$/.test(id) && raw.labels[id]) st.labels[id] = String(raw.labels[id]).slice(0, 3);
+    for (const id in raw.labels) if (/^[ox]\d{1,2}$/.test(id) && raw.labels[id]) st.labels[id] = String(raw.labels[id]).slice(0, 3);
   }
   const frames = Array.isArray(raw.frames) && raw.frames.length ? raw.frames.slice(0, 30) : [{ ink: raw.ink, tok: raw.tok }];
   st.frames = frames.map(f => ({ ink: cleanInk(f && f.ink, shift), tok: cleanTokens(f && f.tok, shift, view) }));
@@ -460,7 +462,8 @@ function cleanOverlay(o) {
 function movesFor(fr) {
   const moves = {};
   const ids = Object.keys(fr.tok);
-  const players = ids.filter(id => 'oxc'.includes(kindOf(id))), balls = ids.filter(id => kindOf(id) === 'b');
+  const shown = id => !(state.hidden && state.hidden[id]);
+  const players = ids.filter(id => 'oxc'.includes(kindOf(id)) && shown(id)), balls = ids.filter(id => kindOf(id) === 'b' && shown(id));
   for (const it of fr.ink) {
     if (!['cut', 'dribble', 'screen'].includes(it.t)) continue;
     const pts = toPts(it.p);
@@ -741,7 +744,7 @@ $('showO').addEventListener('click', () => toggleShow('o'));
 $('showX').addEventListener('click', () => toggleShow('x'));
 $('showB').addEventListener('click', () => toggleShow('b'));
 $('resetTok').addEventListener('click', () => {
-  remember(); Object.assign(F().tok, defaultTokens(state.view)); state.tokMoved = false; touched(); fillTokens(gTok, state, F());
+  remember(); Object.assign(F().tok, defaultTokens(state.view)); state.tokMoved = false; delete state.hidden; touched(); fillTokens(gTok, state, F());
 });
 $('undoBtn').addEventListener('click', undo);
 $('redoBtn').addEventListener('click', redo);
@@ -765,6 +768,7 @@ function applyAlignment(a) {
   if (anim) return;
   remember();
   const fr = F(), end = endOf(state.view);
+  if (state.hidden) { for (const id of BASE_TOKENS) if ((a.tok) || (a.o && (id[0] === 'o' || id === 'ball')) || ((a.x || a.man) && id[0] === 'x')) delete state.hidden[id]; }
   if (a.tok) Object.assign(fr.tok, clone(a.tok));
   if (a.o) {
     a.o.forEach((p, i) => { fr.tok['o' + (i + 1)] = spot(p, end); });
@@ -947,7 +951,7 @@ $('nameForm').addEventListener('submit', e => {
   if (!name) return;
   const tags = [...$('tagChips').children].filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent);
   for (const t of $('tagsInput').value.split(',')) { const v = t.trim().slice(0, 30); if (v && !tags.includes(v)) tags.push(v); }
-  closeDialog({ name: name.slice(0, 60), tags: tags.slice(0, 12), notes: $('notesInput').value.slice(0, 2000), team: $('teamChk').checked });
+  closeDialog({ name: name.slice(0, 60), tags: tags.slice(0, 12), notes: $('notesInput').value.slice(0, 4000), team: $('teamChk').checked });
 });
 async function savePlay(details) {
   if (PLAYERS_MODE) return;
@@ -1146,6 +1150,7 @@ $('importBtn').addEventListener('click', () => $('importFile').click());
 $('importFile').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f) return;
+  if (/\.fdb$/i.test(f.name)) { importFastDraw(f); return; }
   try {
     const data = JSON.parse(await f.text());
     if (!data || data.app !== 'bishops-whiteboard' || !Array.isArray(data.plays)) throw new Error('wrong file');
@@ -1173,6 +1178,32 @@ $('importFile').addEventListener('change', async e => {
     toast('That file is not a Ludo Whiteboard export.');
   }
 });
+
+/* ---------- FastDraw library import (the reading itself is in fastdraw.js) ---------- */
+async function importFastDraw(file) {
+  toast('Reading the FastDraw file…');
+  let result;
+  try { result = parseFastDraw(await file.arrayBuffer(), { fx, fy, uid }); }
+  catch (e) { toast('That FastDraw file could not be read.'); return; }
+  let n = 0;
+  for (const raw of result.plays) {
+    const p = cleanPlay(raw);
+    if (!p) continue;
+    p.id = raw.id; p.updated = Date.now(); // the same FastDraw play always gets the same id, so importing twice replaces it
+    if (!p.tags.includes('FastDraw')) p.tags.push('FastDraw');
+    try { await dbPut('plays', p); n++; } catch (e) { toast('This iPad ran out of room while importing.'); break; }
+  }
+  const r = result.report, extra = [];
+  if (r.skippedItems) extra.push(`${r.skippedItems} item${r.skippedItems === 1 ? '' : 's'} could not be read`);
+  if (r.textBoxes) extra.push(`${r.textBoxes} text box${r.textBoxes === 1 ? '' : 'es'} moved into the notes`);
+  if (r.partial.length) extra.push(`${r.partial.length} play${r.partial.length === 1 ? ' is' : 's are'} incomplete`);
+  $('importReport').textContent = `Imported ${n} play${n === 1 ? '' : 's'} from FastDraw` + (extra.length ? ': ' + extra.join(', ') + '.' : '.') +
+    (r.partial.length ? ' Incomplete: ' + r.partial.slice(0, 12).join(', ') + (r.partial.length > 12 ? '…' : '') + '.' : '') +
+    (Object.keys(r.unknown).length || Object.keys(r.guessedLines).length ? ' Codes not recognised: ' + [...Object.keys(r.unknown), ...Object.keys(r.guessedLines)].join(', ') + '.' : '');
+  $('importReport').hidden = false;
+  toast(`Imported ${n} plays from FastDraw.`);
+  renderPlaybook();
+}
 
 /* ---------- printable playbook ---------- */
 async function showPrint() {

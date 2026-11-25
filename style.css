@@ -237,3 +237,5 @@ select { height: 40px; padding: 0 8px; background: var(--surface); color: var(--
 .cloud { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; color: var(--ink-muted); font-size: 13px; }
 .cloud span { flex: 1 1 200px; min-width: 0; }
 input[type="email"], input[type="password"] { height: 40px; padding: 0 10px; background: var(--surface); border: 1px solid var(--keyline); color: var(--ink); -webkit-user-select: text; user-select: text; }
+
+.report { border: 1px solid var(--keyline); padding: 8px 12px; margin: 0 0 12px; max-width: 90ch; -webkit-user-select: text; user-select: text; }

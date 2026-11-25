@@ -136,7 +136,7 @@
       <button id="printBtn" class="btn">Print</button>
       <button id="closeBook" class="btn">Back to board</button>
     </div>
-    <input id="importFile" type="file" accept=".json,application/json" hidden>
+    <input id="importFile" type="file" hidden>
   </div>
   <div class="cloud">
     <span id="cloudStatus">Plays are saved on this iPad.</span>
@@ -149,6 +149,7 @@
       <select id="bookSort"><option value="recent">Newest first</option><option value="name">By name</option></select>
     </label>
   </div>
+  <p id="importReport" class="hint report" hidden></p>
   <div id="tagFilter" class="chips"></div>
   <div id="mineSection">
     <h3 class="sect">My plays</h3>
@@ -181,7 +182,7 @@
     <label for="tagsInput">Other tags, separated by commas</label>
     <input id="tagsInput" type="text" maxlength="120" autocomplete="off">
     <label for="notesInput">Coaching notes</label>
-    <textarea id="notesInput" rows="4" maxlength="2000"></textarea>
+    <textarea id="notesInput" rows="4" maxlength="4000"></textarea>
     <label class="check"><input type="checkbox" id="teamChk"> Show this play to players</label>
     <div class="row end">
       <button type="button" id="dlgCancel" class="btn">Cancel</button>
@@ -208,6 +209,7 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toastMsg"></span><button id="toastAct" class="btn" hidden></button></div>
 
+<script src="fastdraw.js"></script>
 <script src="app.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="cloud-config.js"></script>
