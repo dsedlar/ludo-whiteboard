@@ -3,19 +3,19 @@
    Court feet map onto the image with fx()/fy(), so overlays are written in real feet. */
 
 const NS = 'http://www.w3.org/2000/svg';
-const IMG_W = 1910, IMG_H = 1213;
-const DATA_V = 3;
+const IMG_W = 1854, IMG_H = 1157;
+const DATA_V = 4;
 // Earlier versions used court images with different baseline widths; this is how far to slide their drawings.
-const shiftFor = v => (v === DATA_V ? 0 : v === 2 ? 80 : -45);
+const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
 // Where the 84 x 50 ft playing surface sits inside court.jpg.
-const OX = 166, OY = 136, SX = 1577 / 84, SY = 940 / 50;
+const OX = 138, OY = 108, SX = 1577 / 84, SY = 940 / 50;
 const fx = X => OX + X * SX, fy = Y => OY + Y * SY;
 
 const VIEWS = {
   full:  { label: 'Full',       vb: [0, 0, IMG_W, IMG_H],  rot: 0,   tf: '' },
   tall:  { label: 'Full tall',  vb: [0, 0, IMG_H, IMG_W],  rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfL: { label: 'Left half',  vb: [60, 0, 1093, 1015], rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfR: { label: 'Right half', vb: [60, 0, 1093, 1015], rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)` },
+  halfL: { label: 'Left half',  vb: [0, 0, IMG_H, 987],     rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
+  halfR: { label: 'Right half', vb: [0, 0, IMG_H, 987],     rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)` },
 };
 
 const COLORS = ['#111111', '#b20000', '#0b4fd6', '#0a7d3b', '#ffd400', '#ffffff'];
@@ -340,11 +340,12 @@ const dbPut = (name, v) => store(name, 'readwrite', s => (s ? s.put(v) : void me
 const dbDel = (name, id) => store(name, 'readwrite', s => (s ? s.delete(id) : void mem[name].delete(id)));
 
 /* ---------- validating anything loaded from disk or an imported file ---------- */
-function cleanInk(list, dx) {
+function cleanInk(list, shift) {
+  const [dx, dy] = shift || [0, 0];
   const out = [];
   for (const it of Array.isArray(list) ? list : []) {
     if (!it || !INK_TYPES.includes(it.t) || !/^#[0-9a-f]{6}$/i.test(it.c) || !Array.isArray(it.p)) continue;
-    const p = it.p.slice(0, 4000).map((n, i) => Number(n) + (dx && i % 2 === 0 ? dx : 0));
+    const p = it.p.slice(0, 4000).map((n, i) => Number(n) + (i % 2 === 0 ? dx : dy));
     if (p.length < 4 || p.some(n => !Number.isFinite(n))) continue;
     out.push({ id: uid(), t: it.t, c: it.c, p });
   }
@@ -357,12 +358,12 @@ function cleanPlay(raw) {
   st.id = typeof raw.id === 'string' ? raw.id.slice(0, 40) : null;
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
-  const dx = shiftFor(raw.v);
-  st.ink = cleanInk(raw.ink, dx);
+  const [dx, dy] = shiftFor(raw.v);
+  st.ink = cleanInk(raw.ink, [dx, dy]);
   st.tokMoved = !!raw.tokMoved;
   for (const id of TOKENS) {
     const p = raw.tok && raw.tok[id];
-    if (Array.isArray(p) && Number.isFinite(+p[0]) && Number.isFinite(+p[1])) st.tok[id] = [+p[0] + dx, +p[1]];
+    if (Array.isArray(p) && Number.isFinite(+p[0]) && Number.isFinite(+p[1])) st.tok[id] = [+p[0] + dx, +p[1] + dy];
   }
   if (raw.show) st.show = { o: raw.show.o !== false, x: raw.show.x !== false, b: raw.show.b !== false };
   if (raw.ovl && typeof raw.ovl === 'object') for (const k in raw.ovl) if (raw.ovl[k]) st.ovl[String(k).slice(0, 40)] = true;
