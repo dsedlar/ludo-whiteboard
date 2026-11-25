@@ -4,6 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
+const APP_VERSION = 17; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -1237,8 +1238,15 @@ async function start() {
   try { customOverlays = (await dbAll('overlays')).map(cleanOverlay); } catch (e) { customOverlays = []; }
   await loadTeam();
   fillOverlays(gOvl, state);
+  $('appVersion').textContent = 'Version ' + APP_VERSION;
   if (PLAYERS_MODE) { document.body.classList.add('players'); showBook(true); }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // When a new version has finished downloading, switch to it right away instead of on the next launch.
+    // The board is saved continuously, so reloading loses nothing.
+    const hadOne = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadOne) location.reload(); });
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
 }
 start();

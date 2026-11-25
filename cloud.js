@@ -163,17 +163,22 @@
     showStatus();
     sync();
   }
-  sb.auth.getSession().then(({ data }) => setUser(data && data.session && data.session.user));
+  const msg = text => { $('signMsg').textContent = text; };
+  const openSignIn = () => { msg(''); $('signin').hidden = false; $('signEmail').focus(); };
+  sb.auth.getSession().then(({ data }) => {
+    const u = data && data.session && data.session.user;
+    setUser(u);
+    if (!u && !PLAYERS_MODE) toast('Sign in to share plays with the staff.', 'Sign in', openSignIn);
+  });
   sb.auth.onAuthStateChange((event, session) => {
     const next = session && session.user;
     if ((next && next.id) !== (user && user.id)) setTimeout(() => setUser(next), 0);
   });
 
   /* ---------- sign-in dialog ---------- */
-  const msg = text => { $('signMsg').textContent = text; };
   $('cloudBtn').addEventListener('click', async () => {
     if (user) { await sb.auth.signOut(); return; }
-    msg(''); $('signin').hidden = false; $('signEmail').focus();
+    openSignIn();
   });
   $('signClose').addEventListener('click', () => { $('signin').hidden = true; });
   $('signForm').addEventListener('submit', async e => {
