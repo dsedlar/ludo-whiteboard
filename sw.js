@@ -1,6 +1,6 @@
 // Offline support: keep a copy of every app file on the iPad, serve from that copy first,
 // and quietly refresh the copy whenever there is a connection.
-const CACHE = 'bishops-whiteboard-v17';
+const CACHE = 'bishops-whiteboard-v18';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'court.jpg', 'team-playbook.json', 'cloud.js', 'cloud-config.js', 'vendor/supabase.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 17; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 18; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -209,11 +209,11 @@ function defaultTokens(view) {
 function blankState(view) {
   return {
     v: DATA_V, id: null, name: '', view, ovl: {}, flip: false, tags: [], notes: '', labels: {}, team: false,
-    frames: [{ ink: [], tok: defaultTokens(view) }], cur: 0, tokMoved: false, show: { o: true, x: true, b: true },
+    frames: [{ ink: [], tok: defaultTokens(view) }], cur: 0, tokMoved: false, show: { o: false, x: false, b: false }, // a clean court: pieces are added from the Pieces panel
   };
 }
 
-let state = blankState('halfL');
+let state = blankState('full');
 const F = () => state.frames[state.cur];
 let tool = 'cut', color = COLORS[0];
 let fingerDraw = true, penSeen = false;
@@ -769,7 +769,7 @@ function applyAlignment(a) {
   if (a.o) {
     a.o.forEach((p, i) => { fr.tok['o' + (i + 1)] = spot(p, end); });
     fr.tok.ball = spot([a.o[0][0] + 1.6, a.o[0][1] + 2.6], end);
-    state.show.o = true;
+    state.show.o = true; state.show.b = true;
   }
   if (a.x) { a.x.forEach((p, i) => { fr.tok['x' + (i + 1)] = spot(p, end); }); state.show.x = true; }
   if (a.man) { // put each defender between their player and the nearer basket
@@ -1127,8 +1127,8 @@ $('closeBook').addEventListener('click', () => showBook(false));
 $('bookSearch').addEventListener('input', e => { book.q = e.target.value.trim(); renderPlaybook(); });
 $('bookSort').addEventListener('change', e => { book.sort = e.target.value; renderPlaybook(); });
 $('newPlay').addEventListener('click', () => {
-  const st = blankState(state.view);
-  st.ovl = clone(state.ovl); st.flip = state.flip; st.labels = clone(state.labels);
+  const st = blankState('full');
+  st.labels = clone(state.labels);
   loadState(st); showBook(false);
 });
 
