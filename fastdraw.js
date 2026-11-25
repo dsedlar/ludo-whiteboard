@@ -245,11 +245,11 @@ function parseFastDraw(buf, env) {
       return 'full';
     };
     const regions = frames.map(region);
-    const view = regions.every(r => r === 'near') ? 'halfL' : regions.every(r => r === 'far') ? 'halfR' : 'tall';
+    const view = regions.every(r => r === 'near') ? 'halfL' : regions.every(r => r === 'far') ? 'halfR' : 'full';
     const toWorld = (fr, x, y) => { // FastDraw feet -> pixels on our court image
       const L = courtLength(fr.courtType), W = courtWidth(fr.courtType);
       let along;
-      if (view === 'tall') along = y * 84 / L;          // whole floor: stretch to our 84 ft court
+      if (view === 'full') along = y * 84 / L;          // whole floor: stretch to our 84 ft court
       else if (view === 'halfR') along = 84 - (L - y);   // keep the distance from the far baseline
       else along = y;                                    // keep the distance from the near baseline
       return [round1(fx(along)), round1(fy(50 - x * 50 / W))];

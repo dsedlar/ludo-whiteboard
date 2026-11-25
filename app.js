@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 20; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 21; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -15,8 +15,8 @@ const fx = X => OX + X * SX, fy = Y => OY + Y * SY;
 const VIEWS = {
   full:  { label: 'Full',  name: 'Full court',      vb: [0, 0, IMG_W, IMG_H], rot: 0,   tf: '' },
   tall:  { label: 'Tall',  name: 'Full court tall', vb: [0, 0, IMG_H, IMG_W], rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)`, inv: `rotate(-90) translate(${-IMG_H} 0)` },
-  halfL: { label: 'Left',  name: 'Left half',       vb: [0, 0, IMG_H, 987],   rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)`, inv: `rotate(-90) translate(${-IMG_H} 0)` },
-  halfR: { label: 'Right', name: 'Right half',      vb: [0, 0, IMG_H, 987],   rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)`, inv: `rotate(90) translate(0 ${-IMG_W})` },
+  halfL: { label: 'Half',  name: 'Half court',      vb: [0, 0, IMG_H, 987],   rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)`, inv: `rotate(-90) translate(${-IMG_H} 0)` },
+  halfR: { label: 'Half',  name: 'Half court',     vb: [0, 0, IMG_H, 987],   rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)`, inv: `rotate(90) translate(0 ${-IMG_W})` },
 };
 // A play can carry a picture (a photo of a drawing, or a PDF page). In the "pic" view the picture is the
 // whole board; in a court view it is laid faintly over the court so it can be traced.
@@ -215,7 +215,7 @@ function defaultTokens(view) {
 function blankState(view) {
   return {
     v: DATA_V, id: null, name: '', view, ovl: {}, flip: false, tags: [], notes: '', labels: {}, team: false,
-    frames: [{ ink: [], tok: defaultTokens(view) }], cur: 0, tokMoved: false, show: { o: false, x: false, b: false }, // a clean court: pieces are added from the Pieces panel
+    frames: [{ ink: [], tok: defaultTokens(view) }], cur: 0, tokMoved: false, bg: true, show: { o: false, x: false, b: false }, // a clean court: pieces are added from the Pieces panel
   };
 }
 
@@ -276,7 +276,11 @@ function fillOverlays(g, st) {
 }
 function fillPic(g, st, courtImage) {
   g.replaceChildren();
-  if (courtImage) courtImage.style.display = st.view === 'pic' && st.pic ? 'none' : '';
+  if (courtImage) {
+    const onPic = st.view === 'pic' && st.pic;
+    courtImage.style.display = onPic || st.bg === false ? 'none' : '';
+    $('blankBoard').style.display = !onPic && st.bg === false ? '' : 'none';
+  }
   if (!st.pic) return;
   if (st.view === 'pic') {
     g.removeAttribute('transform');
@@ -327,7 +331,8 @@ function applyView() {
   const v = viewOf(state);
   board.setAttribute('viewBox', v.vb.join(' '));
   if (v.tf) world.setAttribute('transform', v.tf); else world.removeAttribute('transform');
-  for (const b of $('views').children) { b.setAttribute('aria-pressed', String(b.dataset.view === state.view)); if (b.dataset.view === 'pic') b.hidden = !state.pic; }
+  const shown = state.view === 'tall' ? 'full' : state.view === 'halfR' ? 'halfL' : state.view;
+  for (const b of $('views').children) { b.setAttribute('aria-pressed', String(b.dataset.view === shown)); if (b.dataset.view === 'pic') b.hidden = !state.pic; }
 }
 function paintBoard() {
   fillPic($('pic'), state, $('courtImage'));
@@ -344,6 +349,8 @@ function syncChrome() {
   $('showX').setAttribute('aria-pressed', String(state.show.x));
   $('showB').setAttribute('aria-pressed', String(state.show.b));
   $('flipChk').checked = state.flip;
+  $('bgBtn').setAttribute('aria-pressed', String(state.bg === false));
+  $('bgBtn').querySelector('span').textContent = state.bg === false ? 'Show BG' : 'Hide BG';
   $('picSection').hidden = !state.pic;
   if (state.pic) $('picOpacity').value = String(Math.round((state.picOp || 0.45) * 100));
   const label = `${state.cur + 1} / ${state.frames.length}`;
@@ -465,6 +472,7 @@ function cleanPlay(raw) {
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
   st.tokMoved = !!raw.tokMoved;
+  st.bg = raw.bg !== false;
   if (pic) { st.pic = pic; st.picOp = Math.max(0.1, Math.min(1, Number(raw.picOp) || 0.45)); }
   st.team = !!raw.team;
   st.notes = String(raw.notes || '').slice(0, 4000);
@@ -737,8 +745,8 @@ function buildChrome() {
     b.addEventListener('click', () => { setColor(c); if (['move', 'erase', 'laser'].includes(tool)) setTool('cut'); });
     $('colorBtns').append(b);
   });
-  for (const id in VIEWS) {
-    const b = H('button', { 'data-view': id, 'aria-pressed': 'false', 'aria-label': VIEWS[id].name }, VIEWS[id].label);
+  for (const [id, label] of [['full', 'Full'], ['halfL', 'Half']]) { // the other views still open if a saved play uses one
+    const b = H('button', { 'data-view': id, 'aria-pressed': 'false', 'aria-label': id === 'full' ? 'Full court' : 'Half court' }, label);
     b.addEventListener('click', () => setView(id));
     $('views').append(b);
   }
@@ -794,6 +802,7 @@ $('frameNext').addEventListener('click', () => gotoFrame(state.cur + 1));
 $('frameAdd').addEventListener('click', addFrame);
 $('frameDel').addEventListener('click', deleteFrame);
 $('playBtn').addEventListener('click', playAnim);
+$('bgBtn').addEventListener('click', () => { state.bg = state.bg === false; touched(); paintBoard(); });
 
 /* ---------- pieces: alignments, extra pieces, labels ---------- */
 function applyAlignment(a) {
@@ -1019,7 +1028,9 @@ function thumb(st, frameIdx, bare) {
   const w = S('g', v.tf ? { transform: v.tf } : {});
   const o = S('g', {}), i = S('g', {}), t = S('g', {});
   const onPicture = st.view === 'pic' && st.pic, pg = S('g', {});
-  if (!bare && !onPicture) w.append(S('image', { href: 'court.jpg', width: IMG_W, height: IMG_H, preserveAspectRatio: 'none' }));
+  if (!bare && !onPicture) w.append(st.bg === false
+    ? S('rect', { width: IMG_W, height: IMG_H, fill: '#ffffff' })
+    : S('image', { href: 'court.jpg', width: IMG_W, height: IMG_H, preserveAspectRatio: 'none' }));
   w.append(pg, o, i, t);
   fillPic(pg, st, null); fillOverlays(o, st); fillInk(i, fr); fillTokens(t, st, fr);
   svg.append(w);
@@ -1040,7 +1051,8 @@ async function boardImage(st, frameIdx) {
   ctx.beginPath(); ctx.rect(vx, vy, W, Hh); ctx.clip();
   if (v.rot === 90) { ctx.translate(IMG_H, 0); ctx.rotate(Math.PI / 2); }
   if (v.rot === -90) { ctx.translate(0, IMG_W); ctx.rotate(-Math.PI / 2); }
-  if (!(st.view === 'pic' && st.pic)) ctx.drawImage(courtImg, 0, 0, IMG_W, IMG_H);
+  if (st.bg === false) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, IMG_W, IMG_H); }
+  else if (!(st.view === 'pic' && st.pic)) ctx.drawImage(courtImg, 0, 0, IMG_W, IMG_H);
   ctx.restore();
   const svg = thumb(st, frameIdx, true);
   svg.setAttribute('xmlns', NS); svg.setAttribute('width', W * k); svg.setAttribute('height', Hh * k);
