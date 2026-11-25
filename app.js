@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 22; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 23; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -273,6 +273,30 @@ function fillOverlays(g, st) {
     for (const it of o.items) { const n = inkNode(it); n.removeAttribute('data-ink'); layer.append(n); }
     g.append(layer);
   }
+}
+// The court as plain black lines on white, for when the background is hidden. Drawn in feet.
+function courtLines(withFill) {
+  const g = S('g', {});
+  if (withFill) g.append(S('rect', { width: IMG_W, height: IMG_H, fill: '#ffffff' }));
+  const ft = S('g', { transform: `translate(${OX} ${OY}) scale(${SX} ${SY})`, fill: 'none', stroke: '#111111', 'stroke-width': 0.17, 'pointer-events': 'none' });
+  const add = (tag, attrs) => ft.append(S(tag, attrs));
+  add('rect', { x: 0, y: 0, width: 84, height: 50 });
+  add('line', { x1: 42, y1: 0, x2: 42, y2: 50 });
+  add('circle', { cx: 42, cy: 25, r: 6 });
+  for (const right of [false, true]) {
+    const X = x => (right ? 84 - x : x), sweep = right ? 0 : 1;
+    add('path', { d: `M${X(0)} 5.25 L${X(5.25)} 5.25 A19.75 19.75 0 0 ${sweep} ${X(5.25)} 44.75 L${X(0)} 44.75` }); // three-point line
+    add('path', { d: `M${X(0)} 19 L${X(19)} 19 L${X(19)} 31 L${X(0)} 31` });                                     // lane
+    add('path', { d: `M${X(19)} 19 A6 6 0 0 ${sweep} ${X(19)} 31` });                                             // free-throw circle
+    add('line', { x1: X(4), y1: 22, x2: X(4), y2: 28 });                                                          // backboard
+    add('circle', { cx: X(5.25), cy: 25, r: 0.75 });                                                              // rim
+    for (const x of [7.6, 11.2, 14.3, 17.5]) { // lane marks
+      add('line', { x1: X(x), y1: 19, x2: X(x), y2: 18.3 });
+      add('line', { x1: X(x), y1: 31, x2: X(x), y2: 31.7 });
+    }
+  }
+  g.append(ft);
+  return g;
 }
 function fillPic(g, st, courtImage) {
   g.replaceChildren();
@@ -1028,8 +1052,9 @@ function thumb(st, frameIdx, bare) {
   const w = S('g', v.tf ? { transform: v.tf } : {});
   const o = S('g', {}), i = S('g', {}), t = S('g', {});
   const onPicture = st.view === 'pic' && st.pic, pg = S('g', {});
+  if (bare && !onPicture && st.bg === false) w.append(courtLines(false)); // exported pictures paint the white themselves
   if (!bare && !onPicture) w.append(st.bg === false
-    ? S('rect', { width: IMG_W, height: IMG_H, fill: '#ffffff' })
+    ? courtLines(true)
     : S('image', { href: 'court.jpg', width: IMG_W, height: IMG_H, preserveAspectRatio: 'none' }));
   w.append(pg, o, i, t);
   fillPic(pg, st, null); fillOverlays(o, st); fillInk(i, fr); fillTokens(t, st, fr);
@@ -1394,6 +1419,7 @@ async function start() {
   await loadTeam();
   fillOverlays(gOvl, state);
   $('appVersion').textContent = 'Version ' + APP_VERSION;
+  $('blankBoard').append(courtLines(true));
   if (PLAYERS_MODE) { document.body.classList.add('players'); showBook(true); }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator) {
