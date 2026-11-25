@@ -229,3 +229,6 @@ select { height: 40px; padding: 0 8px; background: var(--surface); color: var(--
   .pcard { border-color: #999; }
   .pcard h3, .psub, .pnotes { color: #000; }
 }
+
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand img { display: block; border: 1px solid rgba(255, 255, 255, 0.7); }

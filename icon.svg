@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#b20000"/>
+  <!-- faint court markings: lane, free-throw circle, three-point arc -->
+  <g fill="none" stroke="#8c0000" stroke-width="10">
+    <path d="M176 0v196h160V0"/>
+    <path d="M176 196a80 80 0 0 0 160 0"/>
+    <path d="M36 0v70a220 250 0 0 0 440 0V0"/>
+  </g>
+  <!-- the L is a cut: it starts at a player and ends in an arrow -->
+  <path d="M170 150V318a52 52 0 0 0 52 52H338" fill="none" stroke="#ffffff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="412,370 324,312 324,428" fill="#ffffff" stroke="#ffffff" stroke-width="14" stroke-linejoin="round"/>
+  <circle cx="170" cy="128" r="50" fill="#b20000" stroke="#ffffff" stroke-width="22"/>
+  <!-- the defender -->
+  <g stroke="#f3eed4" stroke-width="22" stroke-linecap="round">
+    <path d="M300 186l64 64M364 186l-64 64"/>
+  </g>
+  <!-- the ball -->
+  <circle cx="252" cy="118" r="20" fill="#e8731a" stroke="#3c0019" stroke-width="6"/>
+</svg>
