@@ -190,31 +190,26 @@
 </div>
 
 <div id="signin" class="scrim" hidden>
-  <div class="dialog">
+  <form id="signForm" class="dialog">
     <h2>Sign in</h2>
-    <p class="hint">Sign in with your ves.org account to share the playbook with the staff.</p>
-    <button type="button" id="signGoogle" class="btn solid">Sign in with Google</button>
-    <form id="signForm" class="signform">
-      <span class="lab">Or use your ves.org email and a password</span>
-      <input id="signEmail" type="email" placeholder="you@ves.org" autocomplete="username" autocapitalize="none" required>
-      <input id="signPass" type="password" placeholder="Password" autocomplete="current-password" minlength="6" required>
-      <div class="row">
-        <button type="submit" class="btn">Sign in</button>
-        <button type="button" id="signCreate" class="btn">Create account</button>
-      </div>
-    </form>
+    <p class="hint">Use the same email and password as the stats app.</p>
+    <label for="signEmail">Email</label>
+    <input id="signEmail" type="email" placeholder="you@ves.org" autocomplete="username" autocapitalize="none" required>
+    <label for="signPass">Password</label>
+    <input id="signPass" type="password" autocomplete="current-password" required>
     <p id="signMsg" class="hint" role="status"></p>
-    <div class="row end"><button type="button" id="signClose" class="btn">Close</button></div>
-  </div>
+    <div class="row end">
+      <button type="button" id="signClose" class="btn">Close</button>
+      <button type="submit" class="btn solid">Sign in</button>
+    </div>
+  </form>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toastMsg"></span><button id="toastAct" class="btn" hidden></button></div>
 
 <script src="app.js"></script>
-<script src="vendor/firebase-app-compat.js"></script>
-<script src="vendor/firebase-auth-compat.js"></script>
-<script src="vendor/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="cloud-config.js"></script>
 <script src="cloud.js"></script>
 </body>
 </html>

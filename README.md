@@ -27,23 +27,21 @@ on the play (AirDrop works), and they tap **Import** in their Playbook.
 - **Playbook:** tags, notes, search, sort, a printable version, and a picture of any board to send.
 - **Present:** hides the toolbars for teaching from a TV or projector.
 
-## Cloud sync (Firebase)
+## Cloud sync (Supabase)
 
-Plays are always saved on the iPad first, so the app works offline. When a coach signs in with a
-ves.org account, the app also keeps a shared copy in Firebase and syncs whenever it is online. If
-two iPads change the same play, the most recently saved copy wins.
+Plays are always saved on the iPad first, so the app works offline. When a coach signs in, the app
+also keeps a shared copy in Supabase and syncs when it opens, after each save, and when the
+connection comes back. If two iPads change the same play, the most recently saved copy wins.
 
-Setup, done once:
+It uses the same Supabase project and the same user accounts as the stats app. Setup, done once:
 
-1. Create a Firebase project, add a Web app, and paste its settings into `firebase-config.js`.
-2. In Authentication, switch on the Google and Email/Password sign-in methods, and add
-   `dsedlar.github.io` under Settings, Authorized domains.
-3. Create a Firestore database and paste the contents of `firestore.rules` into its Rules tab.
-4. In Firestore, create the document `config/staff` with an array field `emails` listing each
-   coach's ves.org address in lowercase. Only those accounts can change the playbook.
+1. In the Supabase SQL Editor, run `supabase-setup.sql`. It adds two tables, `wb_staff` and
+   `wb_items`, and leaves every existing table alone.
+2. Add each coach's email to `wb_staff`. Only those accounts can change the playbook.
+3. Paste the project URL and the "anon public" key into `cloud-config.js`.
 
-Players open the site address with `?players` on the end and sign in with their ves.org account.
-They see only plays that a coach has marked "Show this play to players", and cannot change anything.
+Players open the site address with `?players` on the end and sign in. They see only plays that a
+coach has marked "Show this play to players", and cannot change anything.
 
 ## Sharing without the cloud
 
@@ -60,10 +58,10 @@ be seen by anyone who finds it.
 | `style.css` | Colors and layout |
 | `app.js` | All of the behavior |
 | `court.jpg` | The court image |
-| `cloud.js` | Syncs plays with Firebase when a coach is signed in |
-| `firebase-config.js` | Your Firebase project settings |
-| `firestore.rules` | Who may read and change the shared playbook |
-| `vendor/` | The Firebase library, shipped with the app so it works offline |
+| `cloud.js` | Syncs plays with Supabase when a coach is signed in |
+| `cloud-config.js` | Your Supabase project address and public key |
+| `supabase-setup.sql` | Creates the whiteboard's tables and access rules |
+| `vendor/` | The Supabase library, shipped with the app so it works offline |
 | `team-playbook.json` | The plays published to everyone (see above) |
 | `sw.js` | Keeps a copy of the app on the device so it works offline |
 | `manifest.webmanifest`, `icon-*.png` | Home-screen name and icon |

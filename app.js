@@ -1209,8 +1209,12 @@ async function loadTeam() {
     const data = await res.json();
     if (!data || data.app !== 'bishops-whiteboard') return;
     const mineIds = new Set(customOverlays.map(o => o.id));
-    teamOverlays = (Array.isArray(data.overlays) ? data.overlays : []).filter(o => o && o.id && !mineIds.has(String(o.id))).map(cleanOverlay);
-    teamPlays = (Array.isArray(data.plays) ? data.plays : []).map(cleanPlay).filter(Boolean).map((p, i) => { p.id = 't-' + (p.id || i); return p; });
+    // the cloud may also supply team plays (cloud.js), so only replace the ones that came from this file
+    const fileOverlays = (Array.isArray(data.overlays) ? data.overlays : []).filter(o => o && o.id && !mineIds.has(String(o.id))).map(cleanOverlay);
+    fileOverlays.forEach(o => { o.fromFile = true; });
+    teamOverlays = [...teamOverlays.filter(o => !o.fromFile), ...fileOverlays];
+    const filePlays = (Array.isArray(data.plays) ? data.plays : []).map(cleanPlay).filter(Boolean).map((p, i) => { p.id = 't-' + (p.id || i); p.fromFile = true; return p; });
+    teamPlays = [...teamPlays.filter(p => !p.fromFile), ...filePlays];
   } catch (e) { /* no team playbook, or offline before the first visit */ }
 }
 
