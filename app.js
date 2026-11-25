@@ -3,17 +3,19 @@
    Court feet map onto the image with fx()/fy(), so overlays are written in real feet. */
 
 const NS = 'http://www.w3.org/2000/svg';
-const IMG_W = 1750, IMG_H = 1213;
-const DATA_V = 2; // version 1 drawings were made on a court image that was 125 px wider at each end
+const IMG_W = 1910, IMG_H = 1213;
+const DATA_V = 3;
+// Earlier versions used court images with different baseline widths; this is how far to slide their drawings.
+const shiftFor = v => (v === DATA_V ? 0 : v === 2 ? 80 : -45);
 // Where the 84 x 50 ft playing surface sits inside court.jpg.
-const OX = 86, OY = 136, SX = 1577 / 84, SY = 940 / 50;
+const OX = 166, OY = 136, SX = 1577 / 84, SY = 940 / 50;
 const fx = X => OX + X * SX, fy = Y => OY + Y * SY;
 
 const VIEWS = {
   full:  { label: 'Full',       vb: [0, 0, IMG_W, IMG_H],  rot: 0,   tf: '' },
   tall:  { label: 'Full tall',  vb: [0, 0, IMG_H, IMG_W],  rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfL: { label: 'Left half',  vb: [60, 0, 1093, 935],  rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
-  halfR: { label: 'Right half', vb: [60, 0, 1093, 935],  rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)` },
+  halfL: { label: 'Left half',  vb: [60, 0, 1093, 1015], rot: 90,  tf: `translate(${IMG_H} 0) rotate(90)` },
+  halfR: { label: 'Right half', vb: [60, 0, 1093, 1015], rot: -90, tf: `translate(0 ${IMG_W}) rotate(-90)` },
 };
 
 const COLORS = ['#111111', '#b20000', '#0b4fd6', '#0a7d3b', '#ffd400', '#ffffff'];
@@ -355,7 +357,7 @@ function cleanPlay(raw) {
   st.id = typeof raw.id === 'string' ? raw.id.slice(0, 40) : null;
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
-  const dx = raw.v === DATA_V ? 0 : -125;
+  const dx = shiftFor(raw.v);
   st.ink = cleanInk(raw.ink, dx);
   st.tokMoved = !!raw.tokMoved;
   for (const id of TOKENS) {
@@ -700,7 +702,7 @@ $('importFile').addEventListener('change', async e => {
     if (!data || data.app !== 'bishops-whiteboard' || !Array.isArray(data.plays)) throw new Error('wrong file');
     const idMap = {};
     for (const o of Array.isArray(data.overlays) ? data.overlays : []) {
-      const items = cleanInk(o && o.items, o && o.v === DATA_V ? 0 : -125);
+      const items = cleanInk(o && o.items, shiftFor(o && o.v));
       if (!items.length) continue;
       const fresh = { v: DATA_V, id: 'c-' + uid(), name: String(o.name || 'Overlay').slice(0, 40), items };
       idMap[o.id] = fresh.id;
@@ -739,7 +741,7 @@ async function start() {
   $('fingerChk').checked = fingerDraw;
   setTool(tool); setColor(color);
   paintAll();
-  try { customOverlays = (await dbAll('overlays')).map(o => ({ v: DATA_V, id: String(o.id), name: String(o.name || 'Overlay').slice(0, 40), items: cleanInk(o.items, o.v === DATA_V ? 0 : -125) })); } catch (e) { customOverlays = []; }
+  try { customOverlays = (await dbAll('overlays')).map(o => ({ v: DATA_V, id: String(o.id), name: String(o.name || 'Overlay').slice(0, 40), items: cleanInk(o.items, shiftFor(o.v)) })); } catch (e) { customOverlays = []; }
   fillOverlays(gOvl, state);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
