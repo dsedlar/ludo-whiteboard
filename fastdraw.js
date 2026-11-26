@@ -315,6 +315,7 @@ function parseFastDraw(buf, env) {
           addInk(styleOf(it.code), it.color, pts);
         } else if (it.k === 'marker') {
           if (it.code === 0x6c && cones < 20) { cones++; tok['k' + cones] = toWorld(fr, it.x, it.y).map(Math.round); used.add('k' + cones); }
+          else if (it.code === 0xab) addInk('handoff', null, [[it.x, it.y], [it.x + 0.05, it.y]]); // FastDraw's handoff marker
           else noteUnknown('marker ' + it.code.toString(16));
         } else if (it.k === 'poly' || it.k === 'box' || it.k === 'oval') {
           let pts;

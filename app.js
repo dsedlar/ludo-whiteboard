@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 33; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 34; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -27,10 +27,10 @@ const viewOf = st => (st.view === 'pic' && st.pic
 
 const COLORS = ['#111111', '#b20000', '#0b4fd6', '#0a7d3b', '#ffd400', '#ffffff'];
 const TOOLS = [
-  ['move', 'Move'], ['cut', 'Cut'], ['pass', 'Pass'], ['dribble', 'Dribble'], ['screen', 'Screen'],
+  ['move', 'Move'], ['cut', 'Cut'], ['pass', 'Pass'], ['dribble', 'Dribble'], ['handoff', 'DHO'], ['screen', 'Screen'],
   ['line', 'Pen'], ['zone', 'Zone'], ['laser', 'Laser'], ['erase', 'Erase'],
 ];
-const INK_TYPES = ['cut', 'pass', 'dribble', 'screen', 'line', 'zone'];
+const INK_TYPES = ['cut', 'pass', 'dribble', 'handoff', 'screen', 'line', 'zone'];
 const BASE_TOKENS = ['o1', 'o2', 'o3', 'o4', 'o5', 'x1', 'x2', 'x3', 'x4', 'x5', 'ball'];
 const TOKEN_ID = /^([ox]([1-9]|1\d|20)|ball\d?|coach|k\d{1,2})$/; // imported drills can have more than five a side
 const PRESET_TAGS = ['Man offense', 'Zone offense', 'Press break', 'Baseline OB', 'Sideline OB', 'Defense', 'Press', 'Drill'];
@@ -215,6 +215,25 @@ function inkNode(it) {
   if (pts.length < 2) return g;
   if (it.t === 'zone') {
     g.append(S('path', { d: smooth(pts, true), fill: c, 'fill-opacity': 0.28, stroke: c, 'stroke-width': 4, 'stroke-linejoin': 'round' }));
+    return g;
+  }
+  if (it.t === 'handoff') { // a dribble that ends in a handoff mark (#); a tap alone leaves just the mark
+    const hash = (x, y, ux, uy) => { // two bars along the path crossed by two bars across it
+      const px = -uy, py = ux, h = S('g', { stroke: c, 'stroke-width': 4.5, 'stroke-linecap': 'round' });
+      for (const k of [-6, 6]) {
+        h.append(S('line', { x1: x + px * k - ux * 15, y1: y + py * k - uy * 15, x2: x + px * k + ux * 15, y2: y + py * k + uy * 15 }));
+        h.append(S('line', { x1: x + ux * k - px * 15, y1: y + uy * k - py * 15, x2: x + ux * k + px * 15, y2: y + uy * k + py * 15 }));
+      }
+      return h;
+    };
+    const [hx, hy] = pts[pts.length - 1];
+    if (pathLength(pts) < 20) {
+      g.append(S('circle', { cx: hx, cy: hy, r: 24, fill: 'transparent' }), hash(hx, hy, 0.966, -0.259));
+      return g;
+    }
+    const dh = wavy(pts), [vx, vy] = endDir(pts);
+    g.append(S('path', { d: dh, fill: 'none', stroke: 'transparent', 'stroke-width': 36, 'pointer-events': 'stroke' }),
+      S('path', { d: dh, fill: 'none', stroke: c, 'stroke-width': 5.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }), hash(hx, hy, vx, vy));
     return g;
   }
   const d = it.t === 'dribble' ? wavy(pts) : smooth(pts);
@@ -601,7 +620,7 @@ function movesFor(fr) {
   const shown = id => !(state.hidden && state.hidden[id]);
   const players = ids.filter(id => 'oxc'.includes(kindOf(id)) && shown(id)), balls = ids.filter(id => kindOf(id) === 'b' && shown(id));
   for (const it of fr.ink) {
-    if (!['cut', 'dribble', 'screen'].includes(it.t)) continue;
+    if (!['cut', 'dribble', 'handoff', 'screen'].includes(it.t) || pathLength(toPts(it.p)) < 20) continue;
     const pts = toPts(it.p);
     let best = null, bd = 60;
     for (const id of players) {
@@ -611,7 +630,7 @@ function movesFor(fr) {
     }
     if (!best) continue;
     moves[best] = [fr.tok[best], ...pts];
-    if (it.t === 'dribble') {
+    if (it.t === 'dribble' || it.t === 'handoff') {
       for (const b of balls) {
         if (moves[b] || dist(fr.tok[b], fr.tok[best]) > 80) continue;
         const off = [fr.tok[b][0] - fr.tok[best][0], fr.tok[b][1] - fr.tok[best][1]];
@@ -795,8 +814,9 @@ function endPointer(e) {
       return;
     }
     a.path.remove();
-    const pts = simplify(a.pts, 1.6);
-    if (e.type === 'pointerup' && pts.length >= 2 && pathLength(pts) >= 14) {
+    let pts = simplify(a.pts, 1.6);
+    if (a.tool === 'handoff' && pathLength(pts) < 14) pts = [a.pts[0], [a.pts[0][0] + 1, a.pts[0][1]]]; // a tap places just the # mark
+    if (e.type === 'pointerup' && pts.length >= 2 && (pathLength(pts) >= 14 || a.tool === 'handoff')) {
       remember();
       const it = { id: uid(), t: a.tool, c: color, p: pts.flat() };
       F().ink.push(it);
@@ -813,6 +833,7 @@ for (const ev of ['gesturestart', 'gesturechange', 'contextmenu', 'dblclick']) d
 function toolIcon(id) {
   if (id === 'move') return S('svg', { viewBox: '0 0 24 24' }, S('path', { d: 'M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3' }));
   if (id === 'erase') return S('svg', { viewBox: '0 0 24 24' }, S('path', { d: 'M4 15 13 6l6 6-7 7H8zM9 10l6 6M12 19h8' }));
+  if (id === 'handoff') return S('svg', { viewBox: '0 0 24 24' }, S('path', { d: 'M9.5 4 7.5 20M16.5 4l-2 16M4.5 9h16M3.5 15h16' }));
   if (id === 'laser') return S('svg', { viewBox: '0 0 24 24' }, S('path', { d: 'M4 20 14 10M12 4v3M20 12h-3M18 6l-2 2M18 18l-2-2M6 6l2 2' }), S('circle', { cx: 15, cy: 9, r: 2 }));
   const svg = S('svg', { viewBox: '0 0 190 110' });
   const p = id === 'zone' ? [30, 60, 60, 20, 130, 18, 165, 55, 130, 92, 60, 90] : [14, 92, 70, 60, 120, 44, 168, 22];
