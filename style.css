@@ -246,5 +246,7 @@ input[type="email"], input[type="password"] { height: 40px; padding: 0 10px; bac
 .tools > :first-child { margin-left: auto; }
 .tools > :last-child { margin-right: auto; }
 
-.dirrow { justify-content: space-between; min-height: 44px; }
+.dirrow { justify-content: space-between; min-height: 44px; flex-wrap: nowrap; }
+.dirrow .check { flex: 1 1 auto; min-width: 0; }
+.dirrow .btn { flex: none; }
 .dirrow .lab { font-weight: 600; }

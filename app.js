@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 29; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 30; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -311,7 +311,7 @@ function fillOverlays(g, st) {
     g.append(ft);
   }
   const half = st.view === 'halfL' || st.view === 'halfR';
-  if (OVERLAYS.some(o => o.dir && st.ovl[o.id] && !(o.fullOnly && half))) { // which way the offense is going
+  if (st.showDir && !half && st.view !== 'pic') { // the arrow is the coach's choice, and only on the full court
     const a = st.flip ? 54 : 30, b = st.flip ? 30 : 54, dir = Math.sign(b - a), y = 52.9;
     const c = st.bg === false ? '#111111' : '#ffffff';
     g.append(S('g', { transform: `translate(${OX} ${OY}) scale(${SX} ${SY})`, 'pointer-events': 'none' },
@@ -424,6 +424,7 @@ function syncChrome() {
   $('showX').setAttribute('aria-pressed', String(state.show.x));
   $('showB').setAttribute('aria-pressed', String(state.show.b));
   $('flipBtn').textContent = state.flip ? '\u2190 Right to left' : 'Left to right \u2192';
+  $('dirChk').checked = !!state.showDir;
   $('bgBtn').setAttribute('aria-pressed', String(state.bg === false));
   $('bgBtn').querySelector('span').textContent = state.bg === false ? 'Show BG' : 'Hide BG';
   $('picSection').hidden = !state.pic;
@@ -546,6 +547,7 @@ function cleanPlay(raw) {
   st.id = typeof raw.id === 'string' ? raw.id.slice(0, 40) : null;
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
+  st.showDir = !!raw.showDir;
   st.tokMoved = !!raw.tokMoved;
   st.bg = raw.bg !== false;
   if (pic) { st.pic = pic; st.picOp = Math.max(0.1, Math.min(1, Number(raw.picOp) || 0.45)); }
@@ -1018,6 +1020,7 @@ function renderOverlayList() {
   }
 }
 $('flipBtn').addEventListener('click', () => { state.flip = !state.flip; touched(); fillOverlays(gOvl, state); });
+$('dirChk').addEventListener('change', e => { state.showDir = e.target.checked; touched(); fillOverlays(gOvl, state); });
 $('fingerChk').addEventListener('change', e => { fingerDraw = e.target.checked; savePrefs(); });
 $('ovlSave').addEventListener('click', async () => {
   if (!F().ink.length) { toast('Draw the areas on the board first.'); return; }
