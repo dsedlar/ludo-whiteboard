@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 23; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 24; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -48,6 +48,23 @@ const OVERLAYS = [
       { k: 'dash', x1: 28, y1: 0, x2: 28, y2: 50 }, { k: 'dash', x1: 56, y1: 0, x2: 56, y2: 50 },
       { k: 'num', x: 14, y: 25, t: '1' }, { k: 'num', x: 42, y: 25, t: '2' }, { k: 'num', x: 70, y: 25, t: '3' },
       { k: 'arrow', x1: 8, x2: 34, y: -1.5, t: 'BALL ATTACKS' },
+    ],
+  },
+  {
+    // Dead zone behind the free-throw line, an outlet box on each side, and the five running lanes
+    // (rail, slot, middle, slot, rail) from there to the far baseline.
+    id: 'break', name: 'Primary/Secondary Break', dir: true,
+    shapes: [
+      { k: 'area', x: 19, y: 0, w: 65, h: 9, fill: '#3a3a3a', op: 0.42 },    // rail
+      { k: 'area', x: 19, y: 41, w: 65, h: 9, fill: '#3a3a3a', op: 0.42 },   // rail
+      { k: 'area', x: 19, y: 9, w: 65, h: 6, fill: '#000000', op: 0.62 },    // slot
+      { k: 'area', x: 19, y: 35, w: 65, h: 6, fill: '#000000', op: 0.62 },   // slot
+      { k: 'area', x: 19, y: 15, w: 65, h: 20, fill: '#5a0a0a', op: 0.5 },   // middle
+      { k: 'area', x: 0, y: 0, w: 19, h: 50, fill: '#8c0000', op: 0.6 },     // dead zone
+      { k: 'area', x: 19, y: 0, w: 11, h: 10, fill: '#d8d4c8', op: 0.6, edge: '#ffffff' },  // outlet box
+      { k: 'area', x: 19, y: 40, w: 11, h: 10, fill: '#d8d4c8', op: 0.6, edge: '#ffffff' }, // outlet box
+      { k: 'dash', x1: 19, y1: 9, x2: 84, y2: 9, c: '#e8e2cf' }, { k: 'dash', x1: 19, y1: 15, x2: 84, y2: 15, c: '#e8e2cf' },
+      { k: 'dash', x1: 19, y1: 35, x2: 84, y2: 35, c: '#e8e2cf' }, { k: 'dash', x1: 19, y1: 41, x2: 84, y2: 41, c: '#e8e2cf' },
     ],
   },
   {
@@ -248,10 +265,15 @@ function fillOverlays(g, st) {
         ft.append(
           S('rect', { x, y: s.y, width: s.w, height: s.h, fill: '#f3eed4', 'fill-opacity': 0.55 }),
           S('rect', { x, y: s.y, width: s.w, height: s.h, fill: 'url(#hatch)', stroke: '#3c0019', 'stroke-width': 0.3 }));
+      } else if (s.k === 'area') {
+        const x = flip ? 84 - s.x - s.w : s.x;
+        const r = S('rect', { x, y: s.y, width: s.w, height: s.h, fill: s.fill, 'fill-opacity': s.op });
+        if (s.edge) { r.setAttribute('stroke', s.edge); r.setAttribute('stroke-width', 0.25); r.setAttribute('stroke-dasharray', '1 0.8'); }
+        ft.append(r);
       } else if (s.k === 'ln') {
         ft.append(S('line', { x1: mx(s.x1), y1: s.y1, x2: mx(s.x2), y2: s.y2, stroke: '#ffffff', 'stroke-width': 0.13, 'stroke-linecap': 'square' }));
       } else if (s.k === 'dash') {
-        ft.append(S('line', { x1: mx(s.x1), y1: s.y1, x2: mx(s.x2), y2: s.y2, stroke: '#00142d', 'stroke-width': 0.45, 'stroke-dasharray': '1.9 1.5' }));
+        ft.append(S('line', { x1: mx(s.x1), y1: s.y1, x2: mx(s.x2), y2: s.y2, stroke: s.c || '#00142d', 'stroke-width': s.c ? 0.25 : 0.45, 'stroke-dasharray': s.c ? '1.2 1' : '1.9 1.5' }));
       } else if (s.k === 'num') {
         const t = S('text', { 'text-anchor': 'middle', y: 0.95, 'font-size': 2.7, 'font-weight': 700, fill: '#ffffff' });
         t.textContent = s.t;
