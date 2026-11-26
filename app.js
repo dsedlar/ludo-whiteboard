@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 27; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 28; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -48,6 +48,19 @@ const OVERLAYS = [
     ],
   },
   {
+    // The floor in thirds: the wolf area (aggressive), the hawk area (smart, see it all), the den (bears).
+    id: 'zones', name: 'Hunt Mentality Territories', dir: true, fullOnly: true, // not drawn in the half-court view
+    shapes: [
+      { k: 'area', x: 0, y: 0, w: 28, h: 50, fill: '#d81e1e', op: 0.2 },
+      { k: 'area', x: 28, y: 0, w: 28, h: 50, fill: '#f08a1c', op: 0.24 },
+      { k: 'area', x: 56, y: 0, w: 28, h: 50, fill: '#2f9a4a', op: 0.22 },
+      { k: 'dash', x1: 28, y1: 0, x2: 28, y2: 50, c: '#ffffff' }, { k: 'dash', x1: 56, y1: 0, x2: 56, y2: 50, c: '#ffffff' },
+      { k: 'icon', x: 14, y: 25, size: 13, name: 'wolf', c: '#8a0f0f' },
+      { k: 'icon', x: 42, y: 25, size: 13, name: 'hawk', c: '#a25200' },
+      { k: 'icon', x: 70, y: 25, size: 13, name: 'bear', c: '#1d6b33' },
+    ],
+  },
+  {
     // Dead zone behind the free-throw line, an outlet box on each side, and the five running lanes
     // (rail, slot, middle, slot, rail) from there to the far baseline. The rails are left unshaded.
     id: 'break', name: 'Primary/Secondary Break', dir: true,
@@ -88,6 +101,13 @@ const DEFENSES = [
   { name: '3-2 zone', x: [[23, 25], [19, 11], [19, 39], [7, 18], [7, 32]] },
   { name: '1-3-1 zone', x: [[25, 25], [16, 9], [16, 41], [15, 25], [5, 25]] },
 ];
+
+/* The Hunt Mentality marks (wolf, hawk, bear), traced from the team's own artwork. Each fits a 100 x 100 box. */
+const ICONS = {
+  wolf: [{ d: 'M27.9 0.0 L30.1 0.5 L41.2 12.9 L43.7 13.8 L59.3 12.9 L69.0 1.8 L72.3 0.0 L73.9 0.0 L75.3 1.1 L79.3 12.4 L80.5 20.1 L80.5 30.2 L81.4 32.7 L84.3 35.9 L88.1 42.0 L88.4 47.4 L90.6 56.9 L90.0 58.0 L85.9 60.0 L85.2 65.7 L81.6 70.4 L79.6 78.3 L77.3 80.8 L72.3 83.7 L65.3 91.2 L62.6 92.8 L58.6 93.5 L52.5 99.5 L49.8 100.0 L47.7 98.9 L41.6 92.1 L40.7 91.9 L38.9 93.5 L36.2 92.6 L29.0 84.2 L22.2 80.1 L19.3 70.9 L15.5 65.9 L14.8 60.0 L13.9 59.1 L10.9 58.7 L9.4 57.3 L9.6 54.9 L13.0 47.2 L13.0 41.5 L21.1 30.7 L21.1 17.6 L22.2 8.1 L26.3 0.9 Z' }],
+  hawk: [{ d: 'M43.1 -0.0 L58.7 -0.0 L61.6 1.0 L83.6 16.4 L92.2 26.4 L93.2 28.7 L92.2 35.2 L93.7 40.2 L93.7 48.8 L95.6 58.0 L94.8 62.4 L88.5 64.2 L87.2 69.5 L82.0 79.6 L79.9 81.7 L73.4 84.1 L70.0 88.3 L59.0 94.5 L55.6 98.2 L51.7 100.0 L48.0 99.7 L39.7 93.0 L36.6 92.2 L31.3 88.8 L27.7 84.1 L21.4 82.2 L15.1 72.8 L13.3 65.0 L10.4 63.7 L8.1 65.5 L6.3 65.5 L4.4 62.1 L4.7 55.4 L6.8 50.7 L8.4 27.4 L12.8 22.5 L15.7 17.5 L22.2 12.0 L28.5 9.4 L31.9 5.7 L38.6 1.3 Z' }],
+  bear: [{ d: 'M79.8 0.0 L83.0 0.5 L85.7 2.0 L91.1 9.8 L90.6 17.2 L85.7 24.8 L86.6 28.9 L90.6 34.3 L94.7 42.9 L94.7 45.6 L92.5 48.5 L93.8 60.8 L91.1 66.2 L81.0 76.0 L74.9 77.9 L61.6 91.2 L50.4 100.0 L47.9 99.5 L42.8 95.1 L25.1 77.5 L20.5 77.0 L18.5 76.0 L8.2 65.4 L6.7 61.8 L7.2 48.5 L5.3 45.6 L5.3 43.6 L14.3 26.0 L14.3 24.8 L9.2 15.7 L8.5 11.3 L8.9 9.1 L13.1 3.2 L16.3 1.2 L21.7 0.5 L25.4 1.2 L29.8 4.2 L33.9 5.6 L68.0 5.6 L73.7 1.5 Z' }],
+};
 
 /* ---------- small helpers ---------- */
 const $ = id => document.getElementById(id);
@@ -251,6 +271,7 @@ function fillOverlays(g, st) {
   const rot = viewOf(st).rot;
   for (const o of OVERLAYS) {
     if (!st.ovl[o.id]) continue;
+    if (o.fullOnly && (st.view === 'halfL' || st.view === 'halfR')) continue;
     const flip = o.dir && st.flip;
     const mx = x => (flip ? 84 - x : x);
     const ft = S('g', { transform: `translate(${OX} ${OY}) scale(${SX} ${SY})`, 'pointer-events': 'none' });
@@ -265,6 +286,11 @@ function fillOverlays(g, st) {
         const r = S('rect', { x, y: s.y, width: s.w, height: s.h, fill: s.fill, 'fill-opacity': s.op });
         if (s.edge) { r.setAttribute('stroke', s.edge); r.setAttribute('stroke-width', 0.25); r.setAttribute('stroke-dasharray', '1 0.8'); }
         ft.append(r);
+      } else if (s.k === 'icon') {
+        const k = s.size / 100;
+        const icon = S('g', { transform: `translate(${mx(s.x)} ${s.y}) rotate(${-rot}) scale(${k}) translate(-50 -50)`, opacity: 0.7 });
+        for (const part of ICONS[s.name] || []) icon.append(S('path', { d: part.d, fill: part.cut ? '#fff6e6' : s.c }));
+        ft.append(icon);
       } else if (s.k === 'ln') {
         ft.append(S('line', { x1: mx(s.x1), y1: s.y1, x2: mx(s.x2), y2: s.y2, stroke: '#ffffff', 'stroke-width': 0.13, 'stroke-linecap': 'square' }));
       } else if (s.k === 'dash') {
