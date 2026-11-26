@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 31; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 32; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -75,6 +75,7 @@ const OVERLAYS = [
       { k: 'dash', x1: 19, y1: 35, x2: 84, y2: 35, c: '#e8e2cf' }, { k: 'dash', x1: 19, y1: 41, x2: 84, y2: 41, c: '#e8e2cf' },
     ],
   },
+  { id: 'bench', name: 'Bench', bench: true, shapes: [] }, // drawn by benchMark(); Home is top left, Away is top right
   {
     id: 'volleyball', name: 'Volleyball lines',
     shapes: [
@@ -272,6 +273,7 @@ function fillOverlays(g, st) {
   for (const o of OVERLAYS) {
     if (!st.ovl[o.id]) continue;
     if (o.fullOnly && (st.view === 'halfL' || st.view === 'halfR')) continue;
+    if (o.bench) { g.append(benchMark(st)); continue; }
     const flip = o.dir && st.flip;
     const mx = x => (flip ? 84 - x : x);
     const ft = S('g', { transform: `translate(${OX} ${OY}) scale(${SX} ${SY})`, 'pointer-events': 'none' });
@@ -324,6 +326,14 @@ function fillOverlays(g, st) {
     for (const it of o.items) { const n = inkNode(it); n.removeAttribute('data-ink'); layer.append(n); }
     g.append(layer);
   }
+}
+// Our bench: a row of chairs in the top sideline area, on the left for home games and the right for away games.
+function benchMark(st) {
+  const away = st.benchSide === 'away', x0 = away ? 59 : 5, light = st.bg !== false;
+  const ft = S('g', { transform: `translate(${OX} ${OY}) scale(${SX} ${SY})`, 'pointer-events': 'none' });
+  ft.append(S('rect', { x: x0, y: -4.5, width: 20, height: 2.5, fill: light ? '#ffffff' : 'none', 'fill-opacity': 0.92, stroke: light ? '#ffffff' : '#111111', 'stroke-width': 0.2 }));
+  for (let k = 0; k < 10; k++) ft.append(S('rect', { x: x0 + 0.35 + k * 1.95, y: -4.15, width: 1.6, height: 1.8, fill: light ? '#b20000' : '#111111' }));
+  return ft;
 }
 // The two hoops as crisp black lines, drawn over the court picture so they stay sharp at any size.
 function hoopMarks() {
@@ -559,6 +569,7 @@ function cleanPlay(raw) {
   st.name = String(raw.name || '').slice(0, 60);
   st.flip = !!raw.flip;
   st.showDir = !!raw.showDir;
+  st.benchSide = raw.benchSide === 'away' ? 'away' : 'home';
   st.tokMoved = !!raw.tokMoved;
   st.bg = raw.bg !== false;
   if (pic) { st.pic = pic; st.picOp = Math.max(0.1, Math.min(1, Number(raw.picOp) || 0.45)); }
@@ -1007,6 +1018,13 @@ function renderOverlayList() {
     });
     const name = H('span'); name.textContent = o.name + (kind === 'team' ? ' (team)' : '');
     const li = H('li', {}, H('label', { class: 'check' }, cb, name));
+    if (o.bench) { // choose which end of the scorer's table we sit at
+      const side = H('button', { class: 'btn small', id: 'benchSide', type: 'button' });
+      const label = () => { side.textContent = state.benchSide === 'away' ? 'Away (top right)' : 'Home (top left)'; };
+      label();
+      side.addEventListener('click', () => { state.benchSide = state.benchSide === 'away' ? 'home' : 'away'; label(); touched(); fillOverlays(gOvl, state); });
+      li.append(side);
+    }
     if (kind === 'mine') {
       li.append(sureButton('Delete', async () => {
         await dbDel('overlays', o.id);
