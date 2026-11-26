@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 30; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 31; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -325,6 +325,18 @@ function fillOverlays(g, st) {
     g.append(layer);
   }
 }
+// The two hoops as crisp black lines, drawn over the court picture so they stay sharp at any size.
+function hoopMarks() {
+  const ft = S('g', { transform: `translate(${OX} ${OY}) scale(${SX} ${SY})`, fill: 'none', stroke: '#111111', 'stroke-width': 0.2, 'stroke-linecap': 'round', 'pointer-events': 'none' });
+  for (const right of [false, true]) {
+    const X = x => (right ? 84 - x : x);
+    ft.append(
+      S('line', { x1: X(4), y1: 22, x2: X(4), y2: 28 }),          // backboard
+      S('line', { x1: X(4), y1: 25, x2: X(4.5), y2: 25 }),        // neck
+      S('circle', { cx: X(5.25), cy: 25, r: 0.75 }));             // rim
+  }
+  return ft;
+}
 // The court as plain black lines on white, for when the background is hidden. Drawn in feet.
 function courtLines(withFill) {
   const g = S('g', {});
@@ -339,14 +351,12 @@ function courtLines(withFill) {
     add('path', { d: `M${X(0)} 5.25 L${X(5.25)} 5.25 A19.75 19.75 0 0 ${sweep} ${X(5.25)} 44.75 L${X(0)} 44.75` }); // three-point line
     add('path', { d: `M${X(0)} 19 L${X(19)} 19 L${X(19)} 31 L${X(0)} 31` });                                     // lane
     add('path', { d: `M${X(19)} 19 A6 6 0 0 ${sweep} ${X(19)} 31` });                                             // free-throw circle
-    add('line', { x1: X(4), y1: 22, x2: X(4), y2: 28 });                                                          // backboard
-    add('circle', { cx: X(5.25), cy: 25, r: 0.75 });                                                              // rim
     for (const x of [7.6, 11.2, 14.3, 17.5]) { // lane marks
       add('line', { x1: X(x), y1: 19, x2: X(x), y2: 18.3 });
       add('line', { x1: X(x), y1: 31, x2: X(x), y2: 31.7 });
     }
   }
-  g.append(ft);
+  g.append(ft, hoopMarks());
   return g;
 }
 function fillPic(g, st, courtImage) {
@@ -354,6 +364,7 @@ function fillPic(g, st, courtImage) {
   if (courtImage) {
     const onPic = st.view === 'pic' && st.pic;
     courtImage.style.display = onPic || st.bg === false ? 'none' : '';
+    $('hoops').style.display = courtImage.style.display;
     $('blankBoard').style.display = !onPic && st.bg === false ? '' : 'none';
   }
   if (!st.pic) return;
@@ -1110,6 +1121,7 @@ function thumb(st, frameIdx, bare) {
   if (!bare && !onPicture) w.append(st.bg === false
     ? courtLines(true)
     : S('image', { href: 'court.jpg', width: IMG_W, height: IMG_H, preserveAspectRatio: 'none' }));
+  if (!onPicture && st.bg !== false) w.append(hoopMarks());
   w.append(pg, o, i, t);
   fillPic(pg, st, null); fillOverlays(o, st); fillInk(i, fr); fillTokens(t, st, fr);
   svg.append(w);
@@ -1474,6 +1486,7 @@ async function start() {
   fillOverlays(gOvl, state);
   $('appVersion').textContent = 'Version ' + APP_VERSION;
   $('blankBoard').append(courtLines(true));
+  $('hoops').append(hoopMarks());
   if (PLAYERS_MODE) { document.body.classList.add('players'); showBook(true); }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator) {
