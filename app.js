@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 32; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 33; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -75,7 +75,7 @@ const OVERLAYS = [
       { k: 'dash', x1: 19, y1: 35, x2: 84, y2: 35, c: '#e8e2cf' }, { k: 'dash', x1: 19, y1: 41, x2: 84, y2: 41, c: '#e8e2cf' },
     ],
   },
-  { id: 'bench', name: 'Bench', bench: true, shapes: [] }, // drawn by benchMark(); Home is top left, Away is top right
+  { id: 'bench', name: 'Bench', bench: true, fullOnly: true, shapes: [] }, // drawn by benchMark(); Home is top left, Away is top right
   {
     id: 'volleyball', name: 'Volleyball lines',
     shapes: [
