@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 24; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 25; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -55,14 +55,14 @@ const OVERLAYS = [
     // (rail, slot, middle, slot, rail) from there to the far baseline.
     id: 'break', name: 'Primary/Secondary Break', dir: true,
     shapes: [
-      { k: 'area', x: 19, y: 0, w: 65, h: 9, fill: '#3a3a3a', op: 0.42 },    // rail
-      { k: 'area', x: 19, y: 41, w: 65, h: 9, fill: '#3a3a3a', op: 0.42 },   // rail
-      { k: 'area', x: 19, y: 9, w: 65, h: 6, fill: '#000000', op: 0.62 },    // slot
-      { k: 'area', x: 19, y: 35, w: 65, h: 6, fill: '#000000', op: 0.62 },   // slot
-      { k: 'area', x: 19, y: 15, w: 65, h: 20, fill: '#5a0a0a', op: 0.5 },   // middle
-      { k: 'area', x: 0, y: 0, w: 19, h: 50, fill: '#8c0000', op: 0.6 },     // dead zone
-      { k: 'area', x: 19, y: 0, w: 11, h: 10, fill: '#d8d4c8', op: 0.6, edge: '#ffffff' },  // outlet box
-      { k: 'area', x: 19, y: 40, w: 11, h: 10, fill: '#d8d4c8', op: 0.6, edge: '#ffffff' }, // outlet box
+      { k: 'area', x: 19, y: 0, w: 65, h: 9, fill: '#3a3a3a', op: 0.22 },    // rail
+      { k: 'area', x: 19, y: 41, w: 65, h: 9, fill: '#3a3a3a', op: 0.22 },   // rail
+      { k: 'area', x: 19, y: 9, w: 65, h: 6, fill: '#000000', op: 0.34 },    // slot
+      { k: 'area', x: 19, y: 35, w: 65, h: 6, fill: '#000000', op: 0.34 },   // slot
+      { k: 'area', x: 19, y: 15, w: 65, h: 20, fill: '#5a0a0a', op: 0.26},   // middle
+      { k: 'area', x: 0, y: 0, w: 19, h: 50, fill: '#8c0000', op: 0.32},     // dead zone
+      { k: 'area', x: 19, y: 0, w: 11, h: 10, fill: '#ffffff', op: 0.42, edge: '#ffffff' },  // outlet box
+      { k: 'area', x: 19, y: 40, w: 11, h: 10, fill: '#ffffff', op: 0.42, edge: '#ffffff' }, // outlet box
       { k: 'dash', x1: 19, y1: 9, x2: 84, y2: 9, c: '#e8e2cf' }, { k: 'dash', x1: 19, y1: 15, x2: 84, y2: 15, c: '#e8e2cf' },
       { k: 'dash', x1: 19, y1: 35, x2: 84, y2: 35, c: '#e8e2cf' }, { k: 'dash', x1: 19, y1: 41, x2: 84, y2: 41, c: '#e8e2cf' },
     ],
