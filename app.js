@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 25; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 26; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -52,11 +52,9 @@ const OVERLAYS = [
   },
   {
     // Dead zone behind the free-throw line, an outlet box on each side, and the five running lanes
-    // (rail, slot, middle, slot, rail) from there to the far baseline.
+    // (rail, slot, middle, slot, rail) from there to the far baseline. The rails are left unshaded.
     id: 'break', name: 'Primary/Secondary Break', dir: true,
     shapes: [
-      { k: 'area', x: 19, y: 0, w: 65, h: 9, fill: '#3a3a3a', op: 0.22 },    // rail
-      { k: 'area', x: 19, y: 41, w: 65, h: 9, fill: '#3a3a3a', op: 0.22 },   // rail
       { k: 'area', x: 19, y: 9, w: 65, h: 6, fill: '#000000', op: 0.34 },    // slot
       { k: 'area', x: 19, y: 35, w: 65, h: 6, fill: '#000000', op: 0.34 },   // slot
       { k: 'area', x: 19, y: 15, w: 65, h: 20, fill: '#5a0a0a', op: 0.26},   // middle
