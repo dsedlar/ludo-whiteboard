@@ -4,7 +4,7 @@
 
 const NS = 'http://www.w3.org/2000/svg';
 const IMG_W = 1854, IMG_H = 1157;
-const APP_VERSION = 28; // shown in the Playbook so you can tell which version an iPad is running
+const APP_VERSION = 29; // shown in the Playbook so you can tell which version an iPad is running
 const DATA_V = 4;
 // Earlier versions used court images with different borders; this is how far to slide their drawings.
 const shiftFor = v => (v === DATA_V ? [0, 0] : [v === 3 ? -28 : v === 2 ? 52 : -73, -28]);
@@ -310,6 +310,14 @@ function fillOverlays(g, st) {
     }
     g.append(ft);
   }
+  const half = st.view === 'halfL' || st.view === 'halfR';
+  if (OVERLAYS.some(o => o.dir && st.ovl[o.id] && !(o.fullOnly && half))) { // which way the offense is going
+    const a = st.flip ? 54 : 30, b = st.flip ? 30 : 54, dir = Math.sign(b - a), y = 52.9;
+    const c = st.bg === false ? '#111111' : '#ffffff';
+    g.append(S('g', { transform: `translate(${OX} ${OY}) scale(${SX} ${SY})`, 'pointer-events': 'none' },
+      S('line', { x1: a, y1: y, x2: b - dir * 2, y2: y, stroke: c, 'stroke-width': 0.55, 'stroke-linecap': 'round' }),
+      S('polygon', { points: `${b},${y} ${b - dir * 2.8},${y - 1.2} ${b - dir * 2.8},${y + 1.2}`, fill: c, stroke: c, 'stroke-width': 0.2, 'stroke-linejoin': 'round' })));
+  }
   for (const o of [...customOverlays, ...teamOverlays]) {
     if (!st.ovl[o.id]) continue;
     const layer = S('g', { opacity: 0.85, 'pointer-events': 'none' });
@@ -415,7 +423,7 @@ function syncChrome() {
   $('showO').setAttribute('aria-pressed', String(state.show.o));
   $('showX').setAttribute('aria-pressed', String(state.show.x));
   $('showB').setAttribute('aria-pressed', String(state.show.b));
-  $('flipChk').checked = state.flip;
+  $('flipBtn').textContent = state.flip ? '\u2190 Right to left' : 'Left to right \u2192';
   $('bgBtn').setAttribute('aria-pressed', String(state.bg === false));
   $('bgBtn').querySelector('span').textContent = state.bg === false ? 'Show BG' : 'Hide BG';
   $('picSection').hidden = !state.pic;
@@ -1009,7 +1017,7 @@ function renderOverlayList() {
     sets.append(H('li', {}, use, sureButton('Delete', () => { lib.sets = lib.sets.filter(x => x.id !== s.id); saveLib(); renderOverlayList(); })));
   }
 }
-$('flipChk').addEventListener('change', e => { state.flip = e.target.checked; touched(); fillOverlays(gOvl, state); });
+$('flipBtn').addEventListener('click', () => { state.flip = !state.flip; touched(); fillOverlays(gOvl, state); });
 $('fingerChk').addEventListener('change', e => { fingerDraw = e.target.checked; savePrefs(); });
 $('ovlSave').addEventListener('click', async () => {
   if (!F().ink.length) { toast('Draw the areas on the board first.'); return; }

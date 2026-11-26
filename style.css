@@ -245,3 +245,6 @@ input[type="email"], input[type="password"] { height: 40px; padding: 0 10px; bac
 /* Centre the bottom tools; the auto margins still let the bar scroll on a narrow screen. */
 .tools > :first-child { margin-left: auto; }
 .tools > :last-child { margin-right: auto; }
+
+.dirrow { justify-content: space-between; min-height: 44px; }
+.dirrow .lab { font-weight: 600; }
